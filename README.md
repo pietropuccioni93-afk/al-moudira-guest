@@ -27,11 +27,11 @@ Design: Matilda Fender. Build: Pietro Puccioni, with KIT. October 2026.
 | Server: Cloudbeds sign in, stay, bill, requests on the booking | **Scaffold, not yet run** (see 4) |
 
 Everything a guest reads (texts, prices, hours, photos) lives in one file,
-`public/content.js`: the House Book. Tab names and departments are in `public/config.js`.
+`docs/content.js`: the House Book. Tab names and departments are in `docs/config.js`.
 
 ## 2. Three modes, one switch
 
-`public/config.js` > `mode`:
+`docs/config.js` > `mode`:
 
 - **`demo`**: a sample guest (Eleanor, booking AM 48210, surname Hart). Nothing leaves the phone. For showing the app. Demo settings (under Al Moudira) switch between before arrival, the stay and the last day.
 - **`whatsapp`** (Stage 1, can go live now): no booking lookup and **no guest data stored** on any server. The guest types their name and room; every request opens WhatsApp to reception (+20 122 3251 307), already written and tagged for the department, for example `[SPA] Signature massage · Wed 28 · 17:00 · 2 guests · Total 220 USD`.
@@ -44,7 +44,7 @@ Everything a guest reads (texts, prices, hours, photos) lives in one file,
 - Static site plus small server functions in the same project; free plan is enough for one hotel.
 - Fast in Egypt and abroad (global network), HTTPS included.
 - The subdomain can point to Cloudflare without moving moudira.com away from Wix:
-  1. Cloudflare dashboard > Workers & Pages > Create > Pages > upload or connect this folder. Output folder: `public`.
+  1. Cloudflare dashboard > Workers & Pages > Create > Pages > upload or connect this folder. Output folder: `docs`.
   2. In the project: Custom domains > Set up a domain > `guest.moudira.com`. Do this first, or the address shows an error.
   3. In Wix: Domains > Domain Actions next to moudira.com > Manage DNS Records > CNAME (Aliases) > + Add Record. Host name `guest`, value `<project>.pages.dev`. Save. Can take up to 48 hours.
   4. If moudira.com is connected to Wix "via pointing", add the same CNAME at the domain's registrar instead.
@@ -93,10 +93,14 @@ expires at the end of the departure day.
 - [ ] KIT: hosting account, DNS record, Cloudbeds key, answers to section 6
 - [ ] Test on iPhone and Android over the hotel wifi
 
-## 8. Files
+## 8. Publishing the demo on GitHub Pages
+
+Only when it should go live: repository **Settings** > **Pages** > Source **Deploy from a branch** > Branch **main**, folder **/docs** > **Save**. The address appears at the top of that page after a minute or two. A private repository needs GitHub Pro (free with the GitHub Student Developer Pack).
+
+## 9. Files
 
 ```
-public/            the website (open public/index.html, or serve the folder)
+docs/              the website (open docs/index.html, or serve the folder)
   index.html       page shell
   config.js        mode, WhatsApp number, tab names, departments
   content.js       the House Book: all texts, prices, photos
@@ -108,4 +112,4 @@ public/            the website (open public/index.html, or serve the folder)
 functions/api/     server (Cloudflare Pages Functions), Stage 2
 ```
 
-Run locally: `cd public && python3 -m http.server 8000`, then open http://localhost:8000.
+Run locally: `cd docs && python3 -m http.server 8000`, then open http://localhost:8000.
