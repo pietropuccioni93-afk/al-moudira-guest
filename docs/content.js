@@ -42,7 +42,7 @@ window.HOUSE_BOOK = {
 
   experiences: [
     // Eat
-    { id: "mfk", cat: "eat", name: "Moudira Farm Kitchen", img: "w_harvest.jpg", // TEMP: a lighter Farm Kitchen photo to come
+    { id: "mfk", cat: "eat", name: "Moudira Farm Kitchen", img: "w_farm_kitchen.jpg",
       text: "Our chef cooks over a wood fire, from what was picked that day.",
       label: "Few tables", meta: "Lunch, and dinner from 18:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
@@ -69,7 +69,7 @@ window.HOUSE_BOOK = {
       times: ["19:00", "19:30", "20:00", "20:30"] },
 
     // Rest
-    { id: "signature-massage", cat: "rest", name: "Signature massage", img: "w_massage.jpg",
+    { id: "signature-massage", cat: "rest", name: "Signature massage", img: "w_marble.jpg",
       text: "The spa's own massage, by therapists from Kerala.",
       label: "110 USD", meta: "60 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 110 },
@@ -201,8 +201,8 @@ window.HOUSE_BOOK = {
     ],
     fillFirst: [
       { id: "balloon", name: "The balloon at sunrise", sub: "About 2.5 hours", price: "280 USD for two", img: "w_dawn_fields.jpg" },
-      { id: "signature-massage", name: "An evening at the spa", sub: "Best reserved a day ahead", price: "From 110 USD", img: "w_massage.jpg" },
-      { id: "mfk", name: "Dinner at the Farm Kitchen", sub: "Few tables", price: "", img: "w_mfk.jpg" }
+      { id: "signature-massage", name: "An evening at the spa", sub: "Best reserved a day ahead", price: "From 110 USD", img: "w_marble.jpg" },
+      { id: "mfk", name: "Dinner at the Farm Kitchen", sub: "Few tables", price: "", img: "w_farm_kitchen.jpg" }
     ]
   },
 
