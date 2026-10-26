@@ -1,8 +1,7 @@
-# Publishes the demo in /public to GitHub Pages on every push to main.
+# Publishes the demo in /public to GitHub Pages.
+# MANUAL ONLY: nothing goes live on push. To publish: Actions > Deploy demo to GitHub Pages > Run workflow.
 name: Deploy demo to GitHub Pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
