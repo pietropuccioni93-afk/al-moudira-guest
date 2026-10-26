@@ -30,7 +30,13 @@
   const exp = (id) => HB.experiences.find((e) => e.id === id);
   const dept = (id) => C.departments[id] || C.departments.frontoffice;
   const chev = '<svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5l5 5-5 5" fill="none" stroke="#b5b5b5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const img = (f, alt, cls) => f ? `<img src="img/${esc(f)}" alt="${esc(alt || "")}" loading="lazy" decoding="async"${cls ? ` class="${cls}"` : ""}>` : `<div class="ph${cls ? " " + cls : ""}">Photograph to come</div>`;
+  const LOADED = new Set(); // photos already shown once: no second fade on re-render
+  window.__imgIn = (el) => { LOADED.add(el.getAttribute("src")); el.classList.add("ld"); };
+  const img = (f, alt, cls) => {
+    if (!f) return `<div class="ph${cls ? " " + cls : ""}">Photograph to come</div>`;
+    const src = "img/" + esc(f), done = LOADED.has(src);
+    return `<span class="iw${cls ? " " + cls : ""}"><img src="${src}" alt="${esc(alt || "")}" loading="lazy" decoding="async"${done ? ' class="ld" style="transition:none"' : ""} onload="__imgIn(this)" onerror="__imgIn(this)"></span>`;
+  };
 
   function dayLabel(ymd) {
     const t = U.houseDate(0);
@@ -72,12 +78,13 @@
   window.__sunTimes = sunTimes; // for testing
 
   async function loadTemp() {
-    if (!C.showTemperature || S.temp != null) return;
-    S.temp = "";
+    if (!C.showTemperature || S.temp) return;
+    const cached = U.store.get("temp", null);
+    if (cached && Date.now() - cached.at < 3600000) { S.temp = cached.v; return; }
     try {
       const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.latitude}&longitude=${C.longitude}&current=temperature_2m`);
       const j = await r.json();
-      if (j && j.current && typeof j.current.temperature_2m === "number") { S.temp = Math.round(j.current.temperature_2m) + "°"; render(true); }
+      if (j && j.current && typeof j.current.temperature_2m === "number") { S.temp = Math.round(j.current.temperature_2m) + "°"; U.store.set("temp", { v: S.temp, at: Date.now() }); render(true); }
     } catch (e) { /* offline or blocked: hide it */ }
   }
 
@@ -151,7 +158,7 @@
       <div style="margin-top:12px;border:0.5px solid var(--line);border-radius:14px;overflow:hidden">
         <div style="padding:14px 16px;border-bottom:0.5px solid var(--line)"><b style="font-size:15px">Al Moudira</b><div class="small">Your stay is confirmed</div></div>
         <div style="padding:18px 16px 22px">
-          ${img("w_facade.jpg", "Al Moudira", "")}
+          ${img("w_facade.jpg", "Al Moudira", "mail")}
           <img src="img/logo_wordmark.png" alt="Hotel Al Moudira, Luxor" style="width:150px;margin-top:20px">
           <p class="serif" style="font-size:18px;line-height:1.6;margin:18px 0 0">Dear Eleanor,</p>
           <p class="serif" style="font-size:18px;line-height:1.6;margin:10px 0 0">Your stay is confirmed. Your own page is ready: tell us when you arrive, and reserve what you would like before you come.</p>
@@ -174,7 +181,7 @@
   V.ended = () => `<div class="splash"><img class="logo" src="img/logo.png" alt="Hotel Al Moudira, Luxor">
       <h1 style="font-size:26px;margin-top:34px">Thank you for staying with us</h1>
       <p class="lede">Your page closed when you left. We hope to welcome you back.</p>
-      <a class="btn" style="margin-top:24px;max-width:320px" href="mailto:${esc(HB.house.email)}?subject=${encodeURIComponent("A return to Al Moudira")}">Plan a return, directly with the house</a></div>`;
+      <a class="btn" style="margin-top:24px;max-width:320px" href="mailto:${esc(HB.house.email)}?subject=${encodeURIComponent("A return to Al Moudira")}">Plan your return</a></div>`;
 
   /* ---------- Today ---------- */
   V.today = () => {
@@ -184,8 +191,8 @@
     if (p === "last") return V.lastDay();
     const t = U.houseDate(0), tm = U.addDays(t, 1);
     const sun = sunTimes(t);
-    const stayDay = s.arrival ? Math.round((ymdDate(t) - ymdDate(s.arrival)) / 86400000) : 0;
-    const sug = HB.suggestions[Math.abs(stayDay) % HB.suggestions.length];
+    const SG = HB.suggestions;
+    const sug = nowHM() < SG.beforeSunset.until ? SG.beforeSunset : SG.evening;
     const se = exp(sug.id);
     const daily = HB.daily.filter((d) => !d.weekdays || d.weekdays.includes(weekday(t)));
     const today = dayItems(t), tomorrow = dayItems(tm);
@@ -195,11 +202,11 @@
       <div class="kicker" style="margin-top:10px">${esc(fmtDay(t, { weekday: "long", day: "numeric", month: "long" }))}</div>
       <h1>${greeting()}, ${esc(s.guest.first)}</h1>
       <div class="sun"><span>Sunrise ${fmtClock(sun.rise)}</span><span>Sunset ${fmtClock(sun.set)}</span>${S.temp ? `<span>${esc(S.temp)}</span>` : ""}</div>
-      ${se ? `<button class="card" data-act="reserve" data-id="${se.id}">${img(se.img, se.name)}
+      ${se ? `<button class="card" data-act="reserve" data-id="${se.id}">${img(sug.img || se.img, se.name)}
         <div class="in"><div class="kicker">${esc(sug.kicker)}</div><div class="title">${esc(se.name)}</div><div class="line">${esc(sug.line)}</div></div></button>` : ""}
       <h2 class="section">Your day</h2>
       ${today.length ? today.map(itemRow).join("") : `<div class="item"><span class="s" style="margin:0">Nothing booked yet. <a href="#/discover/eat" style="text-decoration:underline">Discover</a> what the house offers.</span></div>`}
-      <h2 class="section">Daily at the house, with our compliments</h2>
+      <h2 class="section">Daily at the house</h2>
       ${daily.map(itemRow).join("")}
       ${tomorrow.length ? `<h2 class="section">Tomorrow</h2>${tomorrow.map(itemRow).join("")}` : ""}
       <h2 class="section">Your stay</h2>
@@ -223,7 +230,7 @@
         `<button class="radio" role="radio" aria-checked="${A.car === c.id}" data-act="car" data-id="${c.id}"><span class="o"></span><span class="grow" style="flex:1">${esc(c.name)}</span>${c.price ? `<span class="val small">${money(c.price)}</span>` : ""}</button>`).join("")}</div>
       <label class="f">Allergies and preferences<textarea class="input" data-bind="arrival.allergies" placeholder="Anything the kitchen and the house should know">${esc(A.allergies)}</textarea></label>
       <h2 class="section">Reserve now, these fill first</h2>
-      ${HB.arrival.fillFirst.map((f) => `<div class="row" style="gap:14px">${img(f.img, "", "")}<span class="grow"><span class="serif" style="font-size:18px;line-height:1.3;display:block">${esc(f.name)}</span><span class="sub">${esc([f.sub, f.price].filter(Boolean).join(" · "))}</span></span><button class="pill soft" data-act="reserve" data-id="${f.id}" style="height:36px;padding:0 14px">Reserve</button></div>`).join("").replace(/<img /g, '<img style="width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0" ')}
+      ${HB.arrival.fillFirst.map((f) => `<div class="row" style="gap:14px">${img(f.img, "", "thumb")}<span class="grow"><span class="serif" style="font-size:18px;line-height:1.3;display:block">${esc(f.name)}</span>${f.price ? `<span class="sub" style="color:var(--ink);font-weight:500">${esc(f.price)}</span>` : ""}<span class="sub">${esc(f.sub)}</span></span><button class="pill soft" data-act="reserve" data-id="${f.id}" style="height:36px;padding:0 14px">Reserve</button></div>`).join("")}
       <button class="btn" data-act="send-arrival" style="margin-top:30px">${sent ? "Send an update" : "Send to the house"}</button>
       ${S.session.bookings && S.session.bookings.length ? "" : `<p class="note">You can change anything here until you arrive.</p>`}
     </div>`;
@@ -244,7 +251,7 @@
       <div class="card" style="padding:22px 20px"><div class="title" style="margin:0;font-size:22px">Thank you for staying with us, ${esc(s.guest.first)}.</div>
         <div class="line">One word on your stay helps us more than you know.</div>
         <button class="btn" data-act="simple" data-kind="word" style="margin-top:16px;background:var(--bg);color:var(--ink);border-radius:22px">Leave us a word</button>
-        <a class="btn" href="mailto:${esc(HB.house.email)}?subject=${encodeURIComponent("A return to Al Moudira, booking " + (s.booking || ""))}" style="margin-top:10px;border-radius:22px">Plan a return, directly with the house</a></div>
+        <a class="btn" href="mailto:${esc(HB.house.email)}?subject=${encodeURIComponent("A return to Al Moudira, booking " + (s.booking || ""))}" style="margin-top:10px;border-radius:22px">Plan your return</a></div>
     </div>`;
   };
 
@@ -260,7 +267,7 @@
         <h2 class="name" style="font-weight:400;margin-bottom:0">${esc(e.name)}</h2>
         <div class="text">${esc(e.text)}</div>
         <div class="foot"><span class="l"><b>${esc(e.label)}</b>${esc(e.meta)}</span>
-          <button class="pill${e.action === "reserve" ? "" : " soft"}" data-act="reserve" data-id="${e.id}" aria-label="${btn(e)}: ${esc(e.name)}">${btn(e)}</button></div></article>`).join("")}
+          <button class="pill soft" data-act="reserve" data-id="${e.id}" aria-label="${btn(e)}: ${esc(e.name)}">${btn(e)}</button></div></article>`).join("")}
       <p class="note">${esc(HB.priceNote)}</p>
     </div>`;
   };
@@ -272,9 +279,10 @@
     const ok = q.status === "confirmed";
     const wa = q.via === "WhatsApp";
     const d = dept(q.dept).name.toLowerCase();
+    const fresh = S.justSent === q.id && !ok;
     return `<div class="screen">
-      <div class="done-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-      <h1 style="text-align:center;font-size:26px;margin-top:18px">${ok ? "Confirmed" : "Request sent"}</h1>
+      <div class="done-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path${fresh ? ' class="tick"' : ""} d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <h1 class="${fresh ? "after-tick" : ""}" style="text-align:center;font-size:26px;margin-top:18px">${ok ? "Confirmed" : "Request sent"}</h1>
       <p class="lede" style="text-align:center;margin-top:8px">${wa ? "Sent to reception on WhatsApp. They will reply to you there."
         : ok ? `Confirmed by ${q.confirmedBy ? "the " + esc(q.confirmedBy.toLowerCase()) + " team" : "the house"}. We look forward to it.`
         : `Our ${esc(d)} team will confirm ${q.kind === "reserve" ? "it" : "this"} here, and by email.`}</p>
@@ -386,11 +394,11 @@
       <p class="note">${esc(HB.addressesNote)}</p></div>`;
   V.team = () => `<div class="screen">${back}<h1>The team</h1>
       ${HB.team.length ? HB.team.map((m) => `<div class="row"><span class="grow">${esc(m.name)}<span class="sub">${esc(m.role)}</span></span></div>`).join("")
-        : `<p class="lede">Al Moudira is proudly run by a local team whose charm, style and gentle efficiency guests praise year after year. Their names and faces will appear here.</p>`}</div>`;
+        : `<p class="lede">${esc(HB.teamNote)}</p>`}</div>`;
   V.photos = () => `<div class="screen">${back}<h1>Photographs</h1>
-      <div class="photos">${HB.photos.map((p, i) => `<img src="img/${p}" alt="" loading="lazy"${i === 0 ? ' class="wide"' : ""}>`).join("")}</div>
+      <div class="photos">${HB.photos.map((p, i) => img(p, "", i === 0 ? "wide" : "")).join("")}</div>
       <h2 class="section">Press</h2>
-      ${HB.press.map((p) => `<a class="row" href="${esc(p.url)}" target="_blank" rel="noopener"><span class="grow">${esc(p.name)}</span>${chev}</a>`).join("")}
+      ${HB.press.map((p) => p.url ? `<a class="row" href="${esc(p.url)}" target="_blank" rel="noopener"><span class="grow">${esc(p.name)}</span>${chev}</a>` : `<div class="row"><span class="grow">${esc(p.name)}</span></div>`).join("")}
       <h2 class="section">Brochures</h2>
       ${HB.brochures.length ? HB.brochures.map((b) => `<a class="row" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="grow">${esc(b.name)}</span>${chev}</a>`).join("") : `<p class="small" style="margin-top:12px">To come.</p>`}
       <p class="note">${esc(HB.distinctions)}.</p></div>`;
@@ -429,7 +437,7 @@
     if (p.type === "perGuest") return money(p.amount * guests) + ", to your room";
     if (p.type === "flat") return guests <= p.cap ? money(p.amount) + ", to your room" : "Price confirmed by the house";
     if (p.type === "from") return "From " + money(p.amount) + ", confirmed by the house";
-    return e.dept === "restaurants" ? "Charged to your room as you dine" : "Confirmed by the house";
+    return e.dept === "restaurants" ? "No charge to reserve" : "Confirmed by the house";
   }
 
   function openSheet(state) { S.sheet = state; drawSheet(true); }
@@ -454,15 +462,14 @@
     const e = exp(st.id), days = stayDays(e);
     const ask = e.action === "ask", join = e.action === "join";
     const times = timesFor(e, st.date);
-    if (times && st.time && !times.includes(st.time)) st.time = null;
+    if (times && (!st.time || !times.includes(st.time))) st.time = times[0] || null; // first sensible time
     const gl = e.guestsLabel || "Guests";
-    return `${e.img ? `<img src="img/${e.img}" alt="" style="width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:16px">` : ""}
-      <h2>${esc(e.name)}</h2><p class="small" style="margin:6px 0 0">${esc(e.sheetLine || [e.label, e.meta].filter(Boolean).join(" · "))}</p>
+    return `<h2 style="padding-right:40px">${esc(e.name)}</h2><p class="small" style="margin:6px 0 0">${esc(e.sheetLine || [e.label, e.meta].filter(Boolean).join(" · "))}</p>
       ${ask ? "" : `<div class="lbl">Day</div><div class="chips" style="margin-top:10px">${days.map((d) => `<button class="chip" aria-pressed="${st.date === d}" data-act="s-date" data-v="${d}">${esc(dayLabel(d))}</button>`).join("")}</div>
       ${times ? `<div class="lbl">Time</div><div class="chips" style="margin-top:10px">${times.map((t) => `<button class="chip" aria-pressed="${st.time === t}" data-act="s-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
       <div class="stepper" style="margin-top:14px"><span>${gl}</span><span class="qty"><button class="round" data-act="s-g" data-d="-1" aria-label="Fewer">−</button><span style="min-width:22px;text-align:center" aria-live="polite">${st.guests}</span><button class="round" data-act="s-g" data-d="1" aria-label="More">+</button></span></div>`}
       <label class="f">${ask ? "Tell us what you have in mind" : esc(e.notePrompt || "Anything we should know")}<textarea class="input" data-bind="sheet.note" style="min-height:64px" placeholder="${ask ? "Dates, how many, any question" : "Optional"}">${esc(st.note || "")}</textarea></label>
-      ${ask ? "" : `<div class="total"><span>${join ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
+      ${ask ? "" : `<div class="total"><span>${join || (e.pricing.type === "none" && e.dept === "restaurants") ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
       ${e.terms ? `<p class="small" style="margin:4px 0 0;font-size:13px">${esc(e.terms)}</p>` : ""}
       <button class="btn" data-act="s-send" style="margin-top:20px"${!ask && e.times && !st.time ? " disabled" : ""}>${ask ? "Send" : join ? "Join" : "Reserve"}</button>
       ${!ask && e.times && !st.time ? `<p class="small" style="text-align:center;font-size:13px;margin:8px 0 0">Choose a time</p>` : ""}`;
@@ -484,6 +491,7 @@
   async function send(req) {
     try {
       const r = await API.sendRequest(req, S.session);
+      S.justSent = r.id;
       S.requests = await API.listRequests();
       closeSheet();
       return r;
@@ -506,7 +514,7 @@
       case "reserve": {
         const e = exp(id); if (!e) return;
         const days = stayDays(e);
-        openSheet({ type: "exp", id, title: e.name, date: days[0], time: e.times && e.times.length === 1 ? e.times[0] : null, guests: Math.min(S.session.guests || 2, e.guestsLabel ? 1 : 10), note: "" });
+        openSheet({ type: "exp", id, title: e.name, date: days[0], time: null, guests: Math.min(S.session.guests || 2, e.guestsLabel ? 1 : 10), note: "" });
         break;
       }
       case "s-date": st.date = el.dataset.v; drawSheet(); break;
@@ -626,9 +634,39 @@
     const key = r.name + "/" + r.arg;
     if (!keepScroll && key !== lastRoute) window.scrollTo(0, 0);
     if (r.name === "ask" && key !== lastRoute) setTimeout(scrollEnd, 0);
+    // opening screen fades into Today
+    if (lastRoute.startsWith("splash") && r.name !== "splash") {
+      app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
+      setTimeout(() => app.classList.remove("enter"), 600);
+    }
+    setupTopbar(r.name);
     lastRoute = key;
     document.title = (r.name === "today" ? "" : (C.tabs[tab] || "") + " · ") + "Al Moudira";
   }
+
+  /* Large title shrinks into a slim bar when the guest scrolls */
+  const NO_BAR = ["splash", "signin", "email", "request"];
+  let barTitle = null;
+  function setupTopbar(name) {
+    let bar = document.querySelector(".topbar");
+    const h1 = app.querySelector(".screen h1");
+    if (!bar) { bar = document.createElement("div"); bar.className = "topbar"; bar.setAttribute("aria-hidden", "true"); document.body.appendChild(bar); }
+    barTitle = NO_BAR.includes(name) || !h1 ? null : h1;
+    if (barTitle) { barTitle.classList.add("big"); bar.textContent = name === "today" ? C.tabs.today : barTitle.textContent.trim(); }
+    onScroll();
+  }
+  function onScroll() {
+    const bar = document.querySelector(".topbar");
+    if (!bar) return;
+    if (!barTitle || !barTitle.isConnected) { bar.classList.remove("on"); return; }
+    const end = barTitle.offsetTop + barTitle.offsetHeight - 44;
+    const y = window.scrollY;
+    const start = Math.max(0, end - 40), span = Math.max(10, end - start);
+    const k = Math.max(0, Math.min(1, (y - start) / span));
+    barTitle.style.opacity = String(1 - k);
+    bar.classList.toggle("on", k >= 1);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
 
   async function refresh() {
     try { S.requests = await API.listRequests(); } catch (e) { }

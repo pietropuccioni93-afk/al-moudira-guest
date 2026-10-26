@@ -22,7 +22,7 @@ Design: Matilda Fender. Build: Pietro Puccioni, with KIT. October 2026.
 | Room: in room dining with a running order; housekeeping and repairs in one tap | Working |
 | Ask: chat with the front office, quick requests | Working (demo replies) |
 | Al Moudira: map sketch, practical information, useful addresses with tap to call, team, photographs, press | Working (team and brochures to come) |
-| Light and dark mode, large text, screen readers, phone and desktop | Working |
+| Light only (the logo is dark ink), large text, screen readers, reduced motion, phone and desktop | Working |
 | Works offline once opened (service worker), home screen icon (manifest) | Working on the live site |
 | Server: Cloudbeds sign in, stay, bill, requests on the booking | **Scaffold, not yet run** (see 4) |
 

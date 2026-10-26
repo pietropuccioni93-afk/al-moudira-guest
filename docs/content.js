@@ -97,7 +97,7 @@ window.HOUSE_BOOK = {
       text: "The fields, the animals and the makers at work.",
       label: "With our compliments", meta: "Daily, 09:30 · 90 minutes",
       action: "join", dept: "farm", pricing: { type: "free" } },
-    { id: "pottery", cat: "farm", name: "Pottery", img: null,
+    { id: "pottery", cat: "farm", name: "Pottery", img: "w_pottery.jpg",
       text: "At the wheel one day, painted the next.",
       label: "Watch freely", meta: "Make your own piece over two days",
       action: "ask", dept: "farm", pricing: { type: "none" } },
@@ -175,13 +175,12 @@ window.HOUSE_BOOK = {
     { time: "17:00", name: "Primal Moves", sub: "By the pool, Monday to Friday", weekdays: [1, 2, 3, 4, 5] }
   ],
 
-  // One suggestion each morning on Today (rotates by day of the stay)
-  suggestions: [
-    { id: "felucca", kicker: "For this evening", line: "Leaves at 16:45, an hour on the Nile. 130 USD for two." },
-    { id: "balloon", kicker: "For tomorrow morning", line: "Forty five minutes over the West Bank, back for breakfast. 280 USD for two." },
-    { id: "nile-package", kicker: "For this afternoon", line: "Two hours at the spa: head massage, scrub, hammam. 165 USD." },
-    { id: "nile-sunset", kicker: "For this evening", line: "A private hour on the river at 17:30, with a picnic. 200 USD for two." }
-  ],
+  // One suggestion on Today, chosen by the time of day at the house:
+  // before the felucca leaves, the felucca; after that, dinner.
+  suggestions: {
+    beforeSunset: { id: "felucca", until: "16:45", kicker: "Before sunset", line: "Leaves at 16:45, an hour on the Nile. 130 USD for two." },
+    evening: { id: "mfk", kicker: "For this evening", line: "Our chef cooks over a wood fire, from what was picked that day. Few tables." }
+  },
 
   arrival: {
     cars: [
@@ -255,18 +254,25 @@ window.HOUSE_BOOK = {
   addressesNote: "In urgent need, at any hour, dial 0. A doctor can come to your room outside clinic hours.",
 
   team: [],   // To be decided: which team members may be named (Florian)
+  teamNote: "Al Moudira is run by a team from the villages around it. You will meet them by name here soon.",
 
   photos: ["w_facade.jpg", "w_pool_pergola.jpg", "w_dining_room.jpg", "w_library.jpg", "w_suite.jpg",
            "w_arch_court.jpg", "w_garden_table.jpg", "w_felucca.jpg", "w_harvest.jpg"],
 
+  // Al Moudira's press, as listed on egyptbeyond.com/press. Links where we have the article.
   press: [
-    { name: "HTSI, Financial Times", url: "https://www.moudira.com/_files/ugd/2ad5ec_b3c9f0b125714c8b9f180529d7f9e5dd.pdf" },
-    { name: "Condé Nast Traveller", url: "https://www.cntravellerme.com/story/cruising-the-nile-on-one-of-the-last-remaining-dahabiyas" },
-    { name: "The World of Interiors", url: "https://www.moudira.com/_files/ugd/2ad5ec_1cc55518ae2d4e64b82de17c52877c99.pdf" },
-    { name: "AD Italia", url: "https://www.ad-italia.it/gallery/al-moudira-hotel-nilo-luxor-egitto-turismo/" },
+    { name: "Financial Times, How To Spend It", url: "https://www.moudira.com/_files/ugd/2ad5ec_b3c9f0b125714c8b9f180529d7f9e5dd.pdf" },
+    { name: "The Telegraph", url: "https://www.telegraph.co.uk/travel/destinations/africa/egypt/hotels/al-moudira-hotel/" },
     { name: "Vogue", url: "https://www.vogue.com/slideshow/melissa-morris-egypt-vacation-diary" },
-    { name: "Vanity Fair", url: "https://www.moudira.com/_files/ugd/2ad5ec_9d0f4f1b5e354936a4a9c0ecc973eaa2.pdf" },
-    { name: "The Telegraph", url: "https://www.telegraph.co.uk/travel/destinations/africa/egypt/hotels/al-moudira-hotel/" }
+    { name: "Condé Nast Traveller" },
+    { name: "Condé Nast Traveller Middle East", url: "https://www.cntravellerme.com/story/cruising-the-nile-on-one-of-the-last-remaining-dahabiyas" },
+    { name: "AD Italia", url: "https://www.ad-italia.it/gallery/al-moudira-hotel-nilo-luxor-egitto-turismo/" },
+    { name: "The World of Interiors", url: "https://www.moudira.com/_files/ugd/2ad5ec_1cc55518ae2d4e64b82de17c52877c99.pdf" },
+    { name: "Emirates Woman" },
+    { name: "Near + Far" },
+    { name: "Cabana" },
+    { name: "Yolo" },
+    { name: "SBLS" }
   ],
   distinctions: "Relais & Châteaux, two MICHELIN Keys",
   brochures: []  // PDFs to come
