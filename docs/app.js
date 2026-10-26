@@ -105,17 +105,18 @@
   /* ---------------- requests shown on the day ---------------- */
   function dayItems(ymd) {
     const s = S.session;
-    const booked = (s.bookings || []).filter((b) => b.date === ymd).map((b) => ({ time: b.time, name: b.name, sub: b.sub }));
+    const booked = (s.bookings || []).filter((b) => b.date === ymd).map((b) => ({ time: b.time, name: b.name, sub: b.sub, expId: b.expId }));
     const req = S.requests.filter((r) => r.date === ymd && r.kind === "reserve").map((r) => ({
       time: r.time || "", name: r.title, sub: r.guests ? `${r.guests} ${r.guests === 1 ? "guest" : "guests"}` : "",
-      status: r.status, href: "#/request/" + r.id
+      status: r.status, href: "#/request/" + r.id, expId: r.expId
     }));
     return booked.concat(req).sort((a, b) => (a.time || "99").localeCompare(b.time || "99"));
   }
   function itemRow(i) {
     const st = i.status ? `<span class="status ${i.status === "confirmed" ? "confirmed" : ""}" style="margin-top:6px"><span class="dot"></span>${i.status === "confirmed" ? "Confirmed" : "Awaiting confirmation"}</span>` : "";
     const inner = `<span class="t">${esc(i.time || "")}</span><span><span class="n">${esc(i.name)}</span>${i.sub ? `<span class="s">${esc(i.sub)}</span>` : ""}${st}</span>`;
-    return i.href ? `<a class="item" href="${i.href}">${inner}</a>` : `<div class="item">${inner}</div>`;
+    const past = i.past ? " past" : "";
+    return i.href ? `<a class="item${past}" href="${i.href}">${inner}</a>` : `<div class="item${past}">${inner}</div>`;
   }
   function statusLabel(r) {
     if (r.via === "WhatsApp") return "Sent on WhatsApp";
@@ -191,9 +192,12 @@
     if (p === "last") return V.lastDay();
     const t = U.houseDate(0), tm = U.addDays(t, 1);
     const sun = sunTimes(t);
-    const SG = HB.suggestions;
-    const sug = nowHM() < SG.beforeSunset.until ? SG.beforeSunset : SG.evening;
-    const se = exp(sug.id);
+    const SG = HB.suggestions, now = nowHM();
+    // never suggest what the guest has already booked during the stay
+    const bookedToday = new Set((s.bookings || []).map((b) => b.expId).concat(S.requests.filter((r) => r.kind === "reserve").map((r) => r.expId)).filter(Boolean));
+    const sug = (now < SG.until ? SG.beforeSunset : SG.evening).find((x) => !bookedToday.has(x.id)) || null;
+    const se = sug && exp(sug.id);
+    const fade = (list) => list.map((i) => Object.assign({}, i, { past: !!i.time && i.time < now }));
     const daily = HB.daily.filter((d) => !d.weekdays || d.weekdays.includes(weekday(t)));
     const today = dayItems(t), tomorrow = dayItems(tm);
     const late = HB.lastDay.lateCheckOut;
@@ -205,9 +209,9 @@
       ${se ? `<button class="card" data-act="reserve" data-id="${se.id}">${img(sug.img || se.img, se.name)}
         <div class="in"><div class="kicker">${esc(sug.kicker)}</div><div class="title">${esc(se.name)}</div><div class="line">${esc(sug.line)}</div></div></button>` : ""}
       <h2 class="section">Your day</h2>
-      ${today.length ? today.map(itemRow).join("") : `<div class="item"><span class="s" style="margin:0">Nothing booked yet. <a href="#/discover/eat" style="text-decoration:underline">Discover</a> what the house offers.</span></div>`}
+      ${today.length ? fade(today).map(itemRow).join("") : `<div class="item"><span class="s" style="margin:0">Nothing booked yet. <a href="#/discover/eat" style="text-decoration:underline">Discover</a> what the house offers.</span></div>`}
       <h2 class="section">Daily at the house</h2>
-      ${daily.map(itemRow).join("")}
+      ${fade(daily).map(itemRow).join("")}
       ${tomorrow.length ? `<h2 class="section">Tomorrow</h2>${tomorrow.map(itemRow).join("")}` : ""}
       <h2 class="section">Your stay</h2>
       <div class="row"><span class="grow">${s.departure ? "Leaving" : "Check out"}</span><span class="val">${s.departure ? esc(fmtDay(s.departure, { weekday: "long", day: "numeric" })) + ", " : ""}${esc(HB.house.checkOut)}</span></div>
@@ -354,7 +358,7 @@
       <p class="small" style="margin-top:8px">${esc(HB.house.replyPromise)}</p>
       ${wa ? `<p class="lede">Your message opens WhatsApp, straight to reception.</p>` : `<div class="thread" aria-live="polite">${msgs.map((m, i) => {
         const showWhen = i === 0 || m.at - msgs[i - 1].at > 1800000;
-        return `${showWhen ? `<div class="when">${esc(dayLabel(ymdOf(new Date(m.at))))} ${fmtClock(new Date(m.at))}</div>` : ""}<div class="bubble ${m.from === "guest" ? "me" : "them"}">${m.from !== "guest" && m.who ? `<span class="who">${esc(m.who)}</span>` : ""}${esc(m.text)}</div>`;
+        return `${showWhen ? `<div class="when">${esc(dayLabel(ymdOf(new Date(m.at))))} ${fmtClock(new Date(m.at))}</div>` : ""}<div class="bubble ${m.from === "guest" ? "me" : "them"}">${m.from !== "guest" && m.who ? `<span class="who">${esc(m.who)}</span>` : ""}${esc(m.welcome ? `${greeting()}, ${S.session.guest.first}. ${HB.house.welcome}` : m.text)}</div>`;
       }).join("")}</div>`}
       <div class="composer">
         <div class="chips" style="margin-top:0">${HB.askChips.map((c) => `<button class="chip" data-act="chip" data-text="${esc(c)}">${esc(c)}</button>`).join("")}</div>
@@ -374,11 +378,11 @@
 
   V.house = () => `<div class="screen">
       <h1 style="margin-top:10px">${esc(C.tabs.house)}</h1>
-      ${MAP}<p class="small" style="margin-top:10px;font-size:13px">A sketch. The map is drawn from the site plan.</p>
+      ${MAP}
       <div style="margin-top:10px">
       <a class="row" href="#/house/practical"><span class="grow">Practical information<span class="sub">Hours, wifi, the clinic, getting around</span></span>${chev}</a>
       <a class="row" href="#/house/addresses"><span class="grow">Useful addresses<span class="sub">Hospitals, police, the clinic</span></span>${chev}</a>
-      <a class="row" href="#/house/team"><span class="grow">The team<span class="sub">Who looks after you</span></span>${chev}</a>
+      ${HB.team.length ? `<a class="row" href="#/house/team"><span class="grow">The team<span class="sub">Who looks after you</span></span>${chev}</a>` : ""}
       <a class="row" href="#/house/photos"><span class="grow">Press, photographs, brochures<span class="sub">${esc(HB.distinctions)}</span></span>${chev}</a>
       <a class="row" href="#/requests"><span class="grow">Your requests</span>${chev}</a>
       ${API.mode === "demo" ? `<a class="row" href="#/demo"><span class="grow">Demo settings<span class="sub">Before arrival, during the stay, the last day</span></span>${chev}</a>` : ""}
@@ -398,7 +402,7 @@
   V.photos = () => `<div class="screen">${back}<h1>Photographs</h1>
       <div class="photos">${HB.photos.map((p, i) => img(p, "", i === 0 ? "wide" : "")).join("")}</div>
       <h2 class="section">Press</h2>
-      ${HB.press.map((p) => p.url ? `<a class="row" href="${esc(p.url)}" target="_blank" rel="noopener"><span class="grow">${esc(p.name)}</span>${chev}</a>` : `<div class="row"><span class="grow">${esc(p.name)}</span></div>`).join("")}
+      ${HB.press.map((p) => `<div class="row"><span class="grow">${esc(p.name)}</span></div>`).join("")}
       <h2 class="section">Brochures</h2>
       ${HB.brochures.length ? HB.brochures.map((b) => `<a class="row" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="grow">${esc(b.name)}</span>${chev}</a>`).join("") : `<p class="small" style="margin-top:12px">To come.</p>`}
       <p class="note">${esc(HB.distinctions)}.</p></div>`;
@@ -465,11 +469,11 @@
     if (times && (!st.time || !times.includes(st.time))) st.time = times[0] || null; // first sensible time
     const gl = e.guestsLabel || "Guests";
     return `<h2 style="padding-right:40px">${esc(e.name)}</h2><p class="small" style="margin:6px 0 0">${esc(e.sheetLine || [e.label, e.meta].filter(Boolean).join(" · "))}</p>
-      ${ask ? "" : `<div class="lbl">Day</div><div class="chips" style="margin-top:10px">${days.map((d) => `<button class="chip" aria-pressed="${st.date === d}" data-act="s-date" data-v="${d}">${esc(dayLabel(d))}</button>`).join("")}</div>
-      ${times ? `<div class="lbl">Time</div><div class="chips" style="margin-top:10px">${times.map((t) => `<button class="chip" aria-pressed="${st.time === t}" data-act="s-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
+      ${ask ? "" : `<div class="lbl">Day</div><div class="chips wrap">${days.map((d) => `<button class="chip" aria-pressed="${st.date === d}" data-act="s-date" data-v="${d}">${esc(dayLabel(d))}</button>`).join("")}</div>
+      ${times ? `<div class="lbl">Time</div><div class="chips wrap">${times.map((t) => `<button class="chip" aria-pressed="${st.time === t}" data-act="s-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
       <div class="stepper" style="margin-top:14px"><span>${gl}</span><span class="qty"><button class="round" data-act="s-g" data-d="-1" aria-label="Fewer">−</button><span style="min-width:22px;text-align:center" aria-live="polite">${st.guests}</span><button class="round" data-act="s-g" data-d="1" aria-label="More">+</button></span></div>`}
       <label class="f">${ask ? "Tell us what you have in mind" : esc(e.notePrompt || "Anything we should know")}<textarea class="input" data-bind="sheet.note" style="min-height:64px" placeholder="${ask ? "Dates, how many, any question" : "Optional"}">${esc(st.note || "")}</textarea></label>
-      ${ask ? "" : `<div class="total"><span>${join || (e.pricing.type === "none" && e.dept === "restaurants") ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
+      ${ask ? "" : e.pricing.type === "none" && e.dept === "restaurants" ? `<p class="small" style="text-align:center;font-size:13px;margin:22px 0 -8px">No charge to reserve</p>` : `<div class="total"><span>${join ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
       ${e.terms ? `<p class="small" style="margin:4px 0 0;font-size:13px">${esc(e.terms)}</p>` : ""}
       <button class="btn" data-act="s-send" style="margin-top:20px"${!ask && e.times && !st.time ? " disabled" : ""}>${ask ? "Send" : join ? "Join" : "Reserve"}</button>
       ${!ask && e.times && !st.time ? `<p class="small" style="text-align:center;font-size:13px;margin:8px 0 0">Choose a time</p>` : ""}`;
@@ -670,7 +674,9 @@
 
   async function refresh() {
     try { S.requests = await API.listRequests(); } catch (e) { }
-    try { S.messages = await API.listMessages(); } catch (e) { }
+    try {
+      S.messages = (await API.listMessages()).map((m) => m.who === "Guest Relations" ? Object.assign({}, m, { who: "The front office" }, /^Good morning, \w+\. Write to us/.test(m.text || "") ? { welcome: true } : {}) : m);
+    } catch (e) { }
   }
 
   window.addEventListener("hashchange", () => { if (S.sheet) closeSheet(); render(); });

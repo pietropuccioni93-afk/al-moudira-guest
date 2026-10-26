@@ -28,7 +28,8 @@ window.HOUSE_BOOK = {
     address: "Al Moudira Hotel, Luxor West Bank, Hager El Dabayah 85836, Egypt",
     checkIn: "15:00",
     checkOut: "12:00",
-    replyPromise: "The front office replies at any hour. Always a person."
+    replyPromise: "The front office replies at any hour. Always a person.",
+    welcome: "Write to us here at any hour, about anything at all."
   },
 
   filters: [
@@ -41,7 +42,7 @@ window.HOUSE_BOOK = {
 
   experiences: [
     // Eat
-    { id: "mfk", cat: "eat", name: "Moudira Farm Kitchen", img: "w_mfk.jpg",
+    { id: "mfk", cat: "eat", name: "Moudira Farm Kitchen", img: "w_harvest.jpg", // TEMP: a lighter Farm Kitchen photo to come
       text: "Our chef cooks over a wood fire, from what was picked that day.",
       label: "Few tables", meta: "Lunch, and dinner from 18:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
@@ -73,7 +74,7 @@ window.HOUSE_BOOK = {
       label: "110 USD", meta: "60 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 110 },
       times: ["10:00", "12:00", "15:00", "17:00", "18:30"] },
-    { id: "nile-package", cat: "rest", name: "The Nile Package", img: "w_marble.jpg",
+    { id: "nile-package", cat: "rest", name: "The Nile Package", img: "w_massage.jpg",
       text: "Head massage, body scrub, hammam and foot massage.",
       label: "165 USD", meta: "120 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 165 },
@@ -177,9 +178,18 @@ window.HOUSE_BOOK = {
 
   // One suggestion on Today, chosen by the time of day at the house:
   // before the felucca leaves, the felucca; after that, dinner.
+  // Never suggests something the guest has already booked today: the next one in the list is used.
   suggestions: {
-    beforeSunset: { id: "felucca", until: "16:45", kicker: "Before sunset", line: "Leaves at 16:45, an hour on the Nile. 130 USD for two." },
-    evening: { id: "mfk", kicker: "For this evening", line: "Our chef cooks over a wood fire, from what was picked that day. Few tables." }
+    until: "16:45",
+    beforeSunset: [
+      { id: "felucca", kicker: "Before sunset", line: "Leaves at 16:45, an hour on the Nile. 130 USD for two." },
+      { id: "nile-sunset", kicker: "Before sunset", line: "A private hour on the river at 17:30, with a picnic. 200 USD for two." }
+    ],
+    evening: [
+      { id: "mfk", kicker: "For this evening", line: "Our chef cooks over a wood fire, from what was picked that day. Few tables." },
+      { id: "khan", kicker: "For this evening", line: "Egyptian and Lebanese, inside or among the palms, until 22:00." },
+      { id: "dining-room", kicker: "For this evening", line: "Dinner by candlelight in the Courtyard, 18:00 to 22:30." }
+    ]
   },
 
   arrival: {

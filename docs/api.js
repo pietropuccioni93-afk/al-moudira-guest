@@ -49,9 +49,9 @@
         guests: 2,
         arrival, departure,
         bookings: phase === "before" ? [] : [
-          { date: today, time: "13:00", name: "Lunch at the Farm Kitchen", sub: "A table for two" },
-          { date: t1, time: "05:10", name: "The balloon at sunrise", sub: "Your car leaves reception" },
-          { date: t1, time: "19:30", name: "Dinner at Khan Al Moudira", sub: "A table for two" }
+          { date: today, time: "13:00", name: "Lunch at the Farm Kitchen", sub: "A table for two", expId: "mfk" },
+          { date: t1, time: "05:10", name: "The balloon at sunrise", sub: "Your car leaves reception", expId: "balloon" },
+          { date: t1, time: "19:30", name: "Dinner at Khan Al Moudira", sub: "A table for two", expId: "khan" }
         ],
         bill: phase === "before" ? { total: 0, lines: [] } : {
           total: phase === "last" ? 1284.5 : 412.5,
@@ -107,7 +107,7 @@
       async getRequest(id) { return store.get("requests", []).find((r) => r.id === id) || null; },
       async listMessages() {
         return store.get("messages", [
-          { from: "house", who: "Guest Relations", text: "Good morning, Eleanor. Write to us here at any hour, about anything at all.", at: Date.now() - 3600000 }
+          { from: "house", who: "The front office", welcome: true, at: Date.now() - 3600000 }
         ]);
       },
       async sendMessage(text) {
@@ -116,7 +116,7 @@
         store.set("messages", list); emit();
         setTimeout(async () => {
           const l = await this.listMessages();
-          l.push({ from: "house", who: "Guest Relations", text: "Thank you, Eleanor. With pleasure, we will confirm here in a moment.", at: Date.now(), demo: true });
+          l.push({ from: "house", who: "The front office", text: "Thank you, Eleanor. With pleasure, we will confirm here in a moment.", at: Date.now(), demo: true });
           store.set("messages", l); emit();
         }, 2500);
       }
