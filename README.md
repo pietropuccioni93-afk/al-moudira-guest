@@ -1,7 +1,7 @@
 # Al Moudira guest web app
 
-A website for guests staying at Al Moudira, opened from a personal link in the
-confirmation email (or booking number and surname). Nothing to download. It works
+A website for guests staying at Al Moudira, opened from the QR card in the room or
+the link at guest.moudira.com. Nothing to download. It works
 on any phone browser and can be added to the home screen with the Al Moudira icon.
 
 Design: Matilda Fender. Build: Pietro Puccioni, with KIT. October 2026.
@@ -12,15 +12,15 @@ Design: Matilda Fender. Build: Pietro Puccioni, with KIT. October 2026.
 
 | Area | Status |
 |---|---|
-| Sign in: personal link, or booking number and surname | Working (demo data) |
+| Sign in: name and room (Stage 1); personal link or booking number and surname (Stage 2) | Working |
 | Today: the day in time order, daily programme, one suggestion, sunrise and sunset, temperature, leaving time, late check out, the bill | Working |
 | Today before arrival: arrival time, car, allergies, "these fill first" | Working |
 | Today on the last day: late check out, airport car, bill to breakfast, a word, a return | Working |
 | Discover: 24 experiences in five filters, from the House Book, with Reserve, Join or Ask | Working |
 | Reserve sheet: day, time, guests, note, total, terms | Working |
-| Request status: Sent, Confirmed, Enjoyed; list of all requests | Working (demo confirms after a few seconds) |
+| Requests: every request opens WhatsApp to reception, tagged for the department; Today lists what was sent | Working |
 | Room: in room dining with a running order; housekeeping and repairs in one tap | Working |
-| Ask: chat with the front office, quick requests | Working (demo replies) |
+| Ask: a message to the front office on WhatsApp, quick requests | Working |
 | Al Moudira: the Farm booklet map (full screen, pinch zoom) with its key, the Guest Directory, practical information, useful addresses with tap to call, photographs, press | Working (team to come) |
 | Documents in context: The Farm booklet in Farm, the Guest Directory under Al Moudira; menus and brochures appear where they belong once their files are added (`content.js` > `documents`, `placements`) | Working |
 | Light only (the logo is dark ink), large text, screen readers, reduced motion, phone and desktop | Working |
@@ -30,13 +30,13 @@ Design: Matilda Fender. Build: Pietro Puccioni, with KIT. October 2026.
 Everything a guest reads (texts, prices, hours, photos) lives in one file,
 `docs/content.js`: the House Book. Tab names and departments are in `docs/config.js`.
 
-## 2. Three modes, one switch
+## 2. Modes
 
 `docs/config.js` > `mode`:
 
-- **`demo`**: a sample guest (Eleanor, booking AM 48210, surname Hart). Nothing leaves the phone. For showing the app. Demo settings (under Al Moudira) switch between before arrival, the stay and the last day.
-- **`whatsapp`** (Stage 1, can go live now): no booking lookup and **no guest data stored** on any server. The guest types their name and room; every request opens WhatsApp to reception (+20 122 3251 307), already written and tagged for the department, for example `[SPA] Signature massage · Wed 28 · 17:00 · 2 guests · Total 220 USD`.
-- **`live`** (Stage 2): sign in, the stay and the bill come from Cloudbeds through `/api`; every request is recorded on the booking as a Cloudbeds note and shown to the guest with its status.
+- **`whatsapp`** (Stage 1, live for guests): no booking lookup and **no guest data stored** on any server. The guest types their name and room; every request opens WhatsApp to reception (+20 122 3251 307), already written and tagged for the department, after a short note: "WhatsApp will open with your request written. Press Send, and we will confirm." The phone forgets the guest three weeks after sign in.
+- **`live`** (Stage 2): sign in, the stay and the bill come from Cloudbeds through `/api`; every request is recorded on the booking.
+- The demo with a sample guest (Eleanor, AM 48210) was removed for launch. It is kept in the history: `git checkout 37c3d61`.
 
 ## 3. Hosting and address (recommendation)
 
@@ -90,13 +90,15 @@ expires at the end of the departure day.
 - [ ] Thomas: check departments against "Who Confirms What" (`config.js`)
 - [ ] Matilda: final texts and prices in `content.js`; photographs for Pottery, Tailoring, Karnak by night; brochures
 - [ ] Florian: which team members may be named; yes to the tab names
-- [ ] Prices: the screens say restaurant prices are plus service and taxes; Matilda's plan proposes showing prices with taxes included. One rule to decide.
+- [x] Prices: shown excluding service and taxes, with that line under every total (decided 27 Oct). Late check out until 18:00.
 - [ ] KIT: hosting account, DNS record, Cloudbeds key, answers to section 6
 - [ ] Test on iPhone and Android over the hotel wifi
 
-## 8. Publishing the demo on GitHub Pages
+## 8. Live on GitHub Pages
 
-Only when it should go live: repository **Settings** > **Pages** > Source **Deploy from a branch** > Branch **main**, folder **/docs** > **Save**. The address appears at the top of that page after a minute or two. A private repository needs GitHub Pro (free with the GitHub Student Developer Pack).
+Repository **Settings** > **Pages**: Source **Deploy from a branch**, branch **main**, folder **/docs**. Every push to `main` redeploys in about a minute.
+
+Address `guest.moudira.com`: first **Settings** > **Pages** > **Custom domain** > `guest.moudira.com` > **Save** (this claims the name, so nobody else can). Then in Wix, a CNAME record: host `guest`, value `pietropuccioni93-afk.github.io`. When the DNS check turns green, tick **Enforce HTTPS** (the certificate can take up to 24 hours).
 
 ## 9. Files
 
@@ -105,7 +107,7 @@ docs/              the website (open docs/index.html, or serve the folder)
   index.html       page shell
   config.js        mode, WhatsApp number, tab names, departments
   content.js       the House Book: all texts, prices, photos
-  api.js           data layer: demo, WhatsApp, live
+  api.js           data layer: WhatsApp (Stage 1), live (Stage 2)
   app.js           the screens
   styles.css       Matilda's design (colours, type, spacing)
   sw.js            offline cache

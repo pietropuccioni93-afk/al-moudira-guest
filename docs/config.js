@@ -2,14 +2,14 @@
  * Al Moudira guest web app: settings.
  *
  * mode
- *   "demo"      Sample guest and data, nothing leaves the phone. For showing the app.
+ *   (the demo with a sample guest is kept in the history: commit 37c3d61)
  *   "whatsapp"  Stage 1. No guest data is stored. Guests type their name and room;
  *               every request opens WhatsApp to reception, tagged for the department.
  *   "live"      Stage 2. Sign in and stay data come from Cloudbeds through /api
  *               (see functions/api). Requests are recorded on the booking.
  */
 window.APP_CONFIG = {
-  mode: "demo",   // set to "whatsapp" for launch on guest.moudira.com
+  mode: "whatsapp",
 
   // Reception WhatsApp, international format without + or spaces (+20 122 3251 307)
   whatsappNumber: "201223251307",
@@ -50,15 +50,3 @@ window.APP_CONFIG = {
     transport:   { name: "Transport", tag: "TRANSPORT" }
   }
 };
-
-/* Preview another mode without changing the file: add ?mode=demo or ?mode=whatsapp to the address.
- * The choice is remembered on that phone until ?mode=default. */
-(function () {
-  try {
-    const q = new URLSearchParams(location.search).get("mode");
-    if (q === "default") localStorage.removeItem("am_mode");
-    else if (q === "demo" || q === "whatsapp") localStorage.setItem("am_mode", q);
-    const m = localStorage.getItem("am_mode");
-    if (m === "demo" || m === "whatsapp") window.APP_CONFIG.mode = m;
-  } catch (e) { /* private mode: keep the default */ }
-})();

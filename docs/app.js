@@ -116,12 +116,12 @@
     const booked = (s.bookings || []).filter((b) => b.date === ymd).map((b) => ({ time: b.time, name: b.name, sub: b.sub, expId: b.expId }));
     const req = S.requests.filter((r) => r.date === ymd && r.kind === "reserve").map((r) => ({
       time: r.time || "", name: r.title, sub: r.guests ? `${r.guests} ${r.guests === 1 ? "guest" : "guests"}` : "",
-      status: r.status, href: "#/request/" + r.id, expId: r.expId
+      status: r.via === "WhatsApp" ? "whatsapp" : r.status, href: "#/request/" + r.id, expId: r.expId
     }));
     return booked.concat(req).sort((a, b) => (a.time || "99").localeCompare(b.time || "99"));
   }
   function itemRow(i) {
-    const st = i.status ? `<span class="status ${i.status === "confirmed" ? "confirmed" : ""}" style="margin-top:6px"><span class="dot"></span>${i.status === "confirmed" ? "Confirmed" : "Awaiting confirmation"}</span>` : "";
+    const st = i.status ? `<span class="status ${i.status === "confirmed" ? "confirmed" : ""}" style="margin-top:6px"><span class="dot"></span>${i.status === "confirmed" ? "Confirmed" : i.status === "whatsapp" ? "Sent on WhatsApp" : "Awaiting confirmation"}</span>` : "";
     const inner = `<span class="t">${esc(i.time || "")}</span><span><span class="n">${esc(i.name)}</span>${i.sub ? `<span class="s">${esc(i.sub)}</span>` : ""}${st}</span>`;
     const past = i.past ? " past" : "";
     return i.href ? `<a class="item${past}" href="${i.href}">${inner}</a>` : `<div class="item${past}">${inner}</div>`;
@@ -157,26 +157,9 @@
                <label class="f">Surname<input class="input" name="surname" placeholder="As on your booking" autocomplete="family-name" required></label>
                <div class="err" id="err" role="alert"></div>
                <button class="btn" style="margin-top:26px">Continue</button>
-             </form>
-             ${API.mode === "demo" ? `<p class="note" style="text-align:center">Demo: <a href="#/email" style="text-decoration:underline">open the confirmation email</a>, or use AM 48210 and Hart.</p>` : ""}`}
+             </form>`}
       </div></div>`;
   };
-
-  V.email = () => `<div class="screen no-tabs">
-      <div class="kicker">Your inbox</div>
-      <div style="margin-top:12px;border:0.5px solid var(--line);border-radius:14px;overflow:hidden">
-        <div style="padding:14px 16px;border-bottom:0.5px solid var(--line)"><b style="font-size:15px">Al Moudira</b><div class="small">Your stay is confirmed</div></div>
-        <div style="padding:18px 16px 22px">
-          ${img("w_facade.jpg", "Al Moudira", "mail")}
-          <img src="img/logo_wordmark.png" alt="Hotel Al Moudira, Luxor" style="width:150px;margin-top:20px">
-          <p class="serif" style="font-size:18px;line-height:1.6;margin:18px 0 0">Dear Eleanor,</p>
-          <p class="serif" style="font-size:18px;line-height:1.6;margin:10px 0 0">Your stay is confirmed. Your own page is ready: tell us when you arrive, and reserve what you would like before you come.</p>
-          <button class="btn" data-act="open-link" style="margin-top:22px">Open your stay</button>
-          <p class="small" style="margin-top:12px;font-size:13px">Opens for everyone in your room, until you leave. Booking AM 48210.</p>
-        </div>
-      </div>
-      <p class="note">This is how the link arrives in the Cloudbeds confirmation email.</p>
-    </div>`;
 
   V.splash = () => {
     const s = S.session;
@@ -224,20 +207,19 @@
       ${tomorrow.length ? `<h2 class="section">Tomorrow</h2>${tomorrow.map(itemRow).join("")}` : ""}
       <h2 class="section">Your stay</h2>
       <div class="row"><span class="grow">${s.departure ? "Leaving" : "Check out"}</span><span class="val">${s.departure ? esc(fmtDay(s.departure, { weekday: "long", day: "numeric" })) + ", " : ""}${esc(HB.house.checkOut)}</span></div>
-      <button class="row" data-act="simple" data-kind="late"><span class="grow">Late check out</span><span class="val">Until 19:00 · ${money(late.price)}</span>${chev}</button>
+      <button class="row" data-act="simple" data-kind="late"><span class="grow">Late check out</span><span class="val">Until ${esc(late.time)} · ${money(late.price)}</span>${chev}</button>
       ${s.bill ? `<a class="row" href="#/bill"><span class="grow">Your bill</span><span class="val">${money(s.bill.total)}</span>${chev}</a>` : ""}
-      <a class="row" href="#/requests"><span class="grow">Your requests</span><span class="val">${open ? open + " awaiting" : S.requests.length || "None yet"}</span>${chev}</a>
+      <a class="row" href="#/requests"><span class="grow">Your requests</span><span class="val">${API.mode === "whatsapp" ? (S.requests.length ? S.requests.length + " sent" : "None yet") : open ? open + " awaiting" : S.requests.length || "None yet"}</span>${chev}</a>
     </div>`;
   };
 
   /* Add to the home screen: first visit only, closable */
   function homeNote() {
     if (!S.showHomeNote || standalone) return "";
-    const demo = API.mode === "demo";
-    if (!isIOS && !isAndroid && !demo) return "";
+    if (!isIOS && !isAndroid) return "";
     const ios = 'On iPhone: tap Share <svg width="15" height="18" viewBox="0 0 15 18" aria-hidden="true" style="vertical-align:-3px"><path d="M7.5 1v10M4 4.5L7.5 1 11 4.5M3 7.5H1.5v9h12v-9H12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>, then “Add to Home Screen”.';
     const and = "On Android: tap the menu (three dots), then “Add to Home screen”.";
-    const how = isIOS ? ios : isAndroid ? and : ios + "<br>" + and;
+    const how = isIOS ? ios : and;
     return `<div class="homenote" role="note"><div><b>Keep Al Moudira on your home screen</b><span>${how}</span></div><button class="close-text" data-act="home-note-close">Close</button></div>`;
   }
 
@@ -363,7 +345,7 @@
       <div class="kicker" style="margin-top:18px">Your bill</div>
       <h1>${money(b.total)}</h1>
       <div style="margin-top:18px;border-top:0.5px solid var(--line)">${b.lines.map(([n, v]) => `<div class="row"><span class="grow">${esc(n)}</span><span class="val">${money(v)}</span></div>`).join("")}</div>
-      <p class="note">${API.mode === "demo" ? "Sample bill. " : ""}Updated from the hotel's system as you go. Restaurant charges include service and taxes once posted.</p>
+      <p class="note">Updated from the hotel's system as you go. Restaurant charges include service and taxes once posted.</p>
       <button class="btn soft" data-act="simple" data-kind="bill" style="margin-top:22px">Bring my bill to breakfast</button>
       <a class="btn" href="#/ask" style="margin-top:10px;background:none;color:var(--ink);height:44px;font-weight:500">A question about your bill</a>
     </div>`;
@@ -434,7 +416,6 @@
       ${HB.team.length ? `<a class="row" href="#/house/team"><span class="grow">The team<span class="sub">Who looks after you</span></span>${chev}</a>` : ""}
       <a class="row" href="#/house/photos"><span class="grow">${HB.brochures.length ? "Press, photographs, brochures" : "Press and photographs"}<span class="sub">${esc(HB.distinctions)}</span></span>${chev}</a>
       <a class="row" href="#/requests"><span class="grow">Your requests</span>${chev}</a>
-      ${API.mode === "demo" ? `<a class="row" href="#/demo"><span class="grow">Demo settings<span class="sub">Before arrival, during the stay, the last day</span></span>${chev}</a>` : ""}
       <button class="row" data-act="signout"><span class="grow" style="color:var(--muted)">Sign out on this phone</span></button></div>
     </div>`;
 
@@ -510,17 +491,6 @@
       <p class="note" style="text-align:center">Pinch to zoom in on a page.</p></div>`;
   };
 
-  V.demo = () => {
-    const p = API.getPhase ? API.getPhase() : "during";
-    const opt = (id, n, sub) => `<button class="radio" role="radio" aria-checked="${p === id}" data-act="phase" data-id="${id}" data-name="${n}"><span class="o"></span><span style="flex:1">${n}<span class="sub">${sub}</span></span></button>`;
-    return `<div class="screen">${back}<h1>Demo settings</h1>
-      <p class="lede">A sample guest, Eleanor, so the app can be shown before it is connected. Nothing here leaves this phone.</p>
-      <h2 class="section">The moment of the stay</h2>
-      <div role="radiogroup">${opt("before", "Before arrival", "Arrival time, the car, what fills first")}${opt("during", "During the stay", "Today, the suggestion, the bill")}${opt("last", "The last day", "Late check out, the bill, a farewell")}</div>
-      <a class="btn soft" href="#/email" style="margin-top:26px" data-act="signout-to-email">Show the confirmation email</a>
-      <button class="btn soft" data-act="reset" style="margin-top:10px">Start the demo again</button></div>`;
-  };
-
   /* =========================================================
    * SHEETS
    * ========================================================= */
@@ -538,6 +508,8 @@
     for (let d = start; d <= end && out.length < 7; d = U.addDays(d, 1)) out.push(d);
     return out.length ? out : [t];
   }
+  // any amount shown before booking carries the tax line (Pietro, 27 Oct)
+  function taxLine(price) { return /\d/.test(price || "") ? `<p class="small taxnote">${esc(HB.taxNote)}</p>` : ""; }
   function priceFor(e, guests) {
     const p = e.pricing || { type: "none" };
     if (p.type === "free") return "With our compliments";
@@ -577,7 +549,7 @@
       ${times ? `<div class="lbl">Time</div><div class="chips wrap">${times.map((t) => `<button class="chip" aria-pressed="${st.time === t}" data-act="s-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
       <div class="stepper" style="margin-top:14px"><span>${gl}</span><span class="qty"><button class="round" data-act="s-g" data-d="-1" aria-label="Fewer">−</button><span style="min-width:22px;text-align:center" aria-live="polite">${st.guests}</span><button class="round" data-act="s-g" data-d="1" aria-label="More">+</button></span></div>`}
       <label class="f">${ask ? "Tell us what you have in mind" : esc(e.notePrompt || "Anything we should know")}<textarea class="input" data-bind="sheet.note" style="min-height:64px" placeholder="${ask ? "Dates, how many, any question" : "Optional"}">${esc(st.note || "")}</textarea></label>
-      ${ask ? "" : e.pricing.type === "none" && e.dept === "restaurants" ? `<p class="small" style="text-align:center;font-size:15px;margin:22px 0 -8px">No charge to reserve</p>` : `<div class="total"><span>${join ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
+      ${ask ? "" : e.pricing.type === "none" && e.dept === "restaurants" ? `<p class="small" style="text-align:center;font-size:15px;margin:22px 0 -8px">No charge to reserve</p>` : `<div class="total"><span>${join ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>${taxLine(priceFor(e, st.guests))}`}
       ${e.terms ? `<p class="small" style="margin:6px 0 0;font-size:15px">${esc(e.terms)}</p>` : ""}
       <button class="btn" data-act="s-send" style="margin-top:20px"${!ask && e.times && !st.time ? " disabled" : ""}>${verb(e)}</button>
       ${!ask && e.times && !st.time ? `<p class="small" style="text-align:center;font-size:15px;margin:8px 0 0">No times left today: choose another day</p>` : ""}`;
@@ -587,8 +559,7 @@
     return `<h2 style="padding-right:80px">${esc(st.title)}</h2>
       <p class="lede" style="margin-top:10px">WhatsApp will open with your request written. Press Send, and we will confirm.</p>
       <button class="btn" data-act="handoff-go" style="margin-top:22px">Open WhatsApp</button>
-      <p class="small" style="text-align:center;margin:14px 0 0">No WhatsApp? Dial 0.</p>
-      ${API.mode === "demo" ? `<p class="small" style="text-align:center;margin:6px 0 0;font-size:15px">Demo: WhatsApp will not open, and nothing is sent.</p>` : ""}`;
+      <p class="small" style="text-align:center;margin:14px 0 0">No WhatsApp? Dial 0.</p>`;
   }
   /* Room service: when */
   function slots() {
@@ -603,7 +574,7 @@
     return `<h2 style="padding-right:80px">When</h2><p class="small" style="margin:6px 0 0">${esc(st.summary)}</p>
       <div class="chips wrap" style="margin-top:16px"><button class="chip" aria-pressed="${!st.at}" data-act="w-asap">As soon as possible</button><button class="chip" aria-pressed="${!!st.at}" data-act="w-pick">At a chosen time</button></div>
       ${st.at ? `<div class="lbl">Time</div><div class="chips wrap">${sl.map((t) => `<button class="chip" aria-pressed="${st.at === t}" data-act="w-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
-      <div class="total"><span>Total</span><span>${esc(st.total)}</span></div>
+      <div class="total"><span>Total</span><span>${esc(st.total)}</span></div>${taxLine(st.total)}
       <button class="btn" data-act="w-send" style="margin-top:16px">Place order</button>`;
   }
   const SIMPLE = {
@@ -617,11 +588,11 @@
   function sheetSimple(st) {
     return `<h2 style="padding-right:80px">${esc(st.title)}</h2><p class="small" style="margin:6px 0 0">${esc(st.line || "")}</p>
       ${st.field ? `<label class="f">${esc(st.field)}<textarea class="input" data-bind="sheet.note" style="min-height:70px">${esc(st.note || "")}</textarea></label>` : ""}
-      ${st.price ? `<div class="total"><span>Total</span><span>${esc(st.price)}</span></div>` : ""}
+      ${st.price ? `<div class="total"><span>Total</span><span>${esc(st.price)}</span></div>${taxLine(st.price)}` : ""}
       <button class="btn" data-act="s-simple" style="margin-top:20px"${st.required && !(st.note || "").trim() ? " disabled" : ""}>${esc(st.cta)}</button>`;
   }
 
-  const HANDOFF = () => API.mode === "whatsapp" || API.mode === "demo";
+  const HANDOFF = () => API.mode === "whatsapp";
   async function send(req, confirmed) {
     if (HANDOFF() && !confirmed) { openSheet({ type: "handoff", title: req.title, req }); return null; }
     try {
@@ -642,7 +613,7 @@
     const el = ev.target.closest("[data-act]");
     if (!el) return;
     const a = el.dataset.act, id = el.dataset.id;
-    if (el.tagName === "A" && a !== "signout-to-email") return;
+    if (el.tagName === "A") return;
     if (el.tagName !== "A") ev.preventDefault();
     const st = S.sheet;
 
@@ -733,13 +704,7 @@
         if (r) { U.store.set("arrivalSent", true); location.hash = "#/request/" + r.id; }
         break;
       }
-      case "phase": API.setPhase(id); S.session = await API.restore(); toast("Showing: " + el.dataset.name.toLowerCase()); render(true); break;
-      case "reset": await API.reset(); U.store.del("homeNote"); S.session = null; S.requests = []; S.messages = []; S.cart = {}; location.hash = "#/signin"; render(); break;
-      case "signout-to-email": await API.signOut(); S.session = null; break;
       case "signout": await API.signOut(); S.session = null; S.requests = []; location.hash = "#/signin"; render(); break;
-      case "open-link": { // demo: the personal link in the email
-        S.session = await API.signIn({ token: "demo" }); await refresh(); location.hash = "#/welcome"; break;
-      }
     }
   });
 
@@ -782,8 +747,8 @@
     if (r.name === "welcome") r.name = "splash";
     return r;
   }
-  const TAB_OF = { today: "today", arrival: "today", bill: "today", requests: "today", discover: "discover", room: "room", ask: "ask", house: "house", practical: "house", addresses: "house", team: "house", photos: "house", demo: "house", doc: "house" };
-  const PUBLIC = ["signin", "email"];
+  const TAB_OF = { today: "today", arrival: "today", bill: "today", requests: "today", discover: "discover", room: "room", ask: "ask", house: "house", practical: "house", addresses: "house", team: "house", photos: "house", doc: "house" };
+  const PUBLIC = ["signin"];
 
   let lastRoute = "";
   function render(keepScroll) {
@@ -798,8 +763,7 @@
     if (r.name !== "doc" && r.name !== "map") S.docBack = location.hash || "#/today"; // Back returns where the guest came from
     const html = view(r);
     const ended = S.session && phase(S.session) === "ended";
-    app.innerHTML = html + (S.session && tab && !ended ? tabbar(tab) : "") +
-      (API.mode === "demo" && S.session && !["splash", "demo", "map"].includes(r.name) ? `<a class="demo" href="#/demo" style="display:flex;align-items:center">Demo</a>` : "");
+    app.innerHTML = html + (S.session && tab && !ended ? tabbar(tab) : "");
     if (bind) { const n = app.querySelector(`[data-bind="${bind}"]`); if (n) { n.focus({ preventScroll: true }); try { n.setSelectionRange(pos, pos); } catch (e) { } } }
     const key = r.name + "/" + r.arg + "/" + r.sub;
     if (!keepScroll && key !== lastRoute) window.scrollTo(0, 0);
@@ -816,7 +780,7 @@
   }
 
   /* Large title shrinks into a slim bar when the guest scrolls */
-  const NO_BAR = ["splash", "signin", "email", "request", "map"];
+  const NO_BAR = ["splash", "signin", "request", "map"];
   let barTitle = null;
   function setupTopbar(name) {
     let bar = document.querySelector(".topbar");
@@ -862,7 +826,7 @@
     await refresh();
     render();
     loadTemp();
-    if ("serviceWorker" in navigator && window.top === window && location.protocol === "https:" && C.mode !== "demo") {
+    if ("serviceWorker" in navigator && window.top === window && location.protocol === "https:") {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
   }

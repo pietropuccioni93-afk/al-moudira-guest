@@ -225,12 +225,13 @@ window.HOUSE_BOOK = {
 
   // The map of the farm and the hotel, from the Farm booklet, with its numbered key
   map: {
-    img: "farm_map.jpg", ratio: 1368 / 1402,
+    img: "farm_map.jpg", ratio: 1584 / 1605,
     key: ["Reception", "The tailor", "Bookbinding", "The pottery", "The paper studio", "Weaving and kilim", "Upholstery", "Antiques",
           "The animals", "The artisans' row", "The dovecotes", "The poultry", "Khayamiya", "The Stable", "Moudira Farm Kitchen"]
   },
 
-  priceNote: "Prices in US dollars, charged to your room. Restaurant prices are plus service and taxes.",
+  priceNote: "Prices in US dollars, excluding service and taxes, charged to your room.",
+  taxNote: "Excluding service and taxes.",
 
   // Shown on Today, in this order. `weekdays` uses 0 = Sunday ... 6 = Saturday.
   daily: [
@@ -270,14 +271,14 @@ window.HOUSE_BOOK = {
   },
 
   lastDay: {
-    lateCheckOut: { name: "Stay until 19:00", sub: "The pool, the spa and your room", price: 80 },
+    lateCheckOut: { name: "Stay until 18:00", time: "18:00", sub: "The pool, the spa and your room", price: 80 },
     airportCar: { name: "A car to the airport", sub: "We suggest leaving 3 hours before an international flight", price: 50 }
   },
 
   // Room service: the guest chooses a restaurant, then its menu, then when.
   // Only restaurants with a menu here are shown. Thomas to confirm which restaurants deliver.
   roomService: {
-    note: "US dollars, plus service and taxes. Tell us of any allergy and the kitchen will confirm.",
+    note: "US dollars, excluding service and taxes. Tell us of any allergy and the kitchen will confirm.",
     restaurants: [
       { id: "in-room", name: "In room dining", line: "At any hour, in about 20 minutes.",
         items: [
