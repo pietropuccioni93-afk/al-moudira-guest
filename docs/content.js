@@ -5,12 +5,15 @@
  *
  * Experience fields
  *   id        unique, short, no spaces
- *   cat       eat | rest | farm | luxor | events
+ *   cat       dining | spa | farm | luxor | evenings
  *   name, text  title and one line
- *   img       photograph in /img, or null ("Photograph to come")
+ *   img       photograph in /img, or null (then it shows as a text card)
  *   label     first line under the text (bold)
  *   meta      second line under the text
- *   action    reserve | join | ask
+ *   action    reserve  a table, a treatment or a place at a set time
+ *             join     free, at a set time
+ *             arrange  the house organises it for you (guides, cars, celebrations)
+ *             ask      on request: tell us what you have in mind
  *   dept      department that confirms (see config.js)
  *   pricing   { type: "none" }                    no price shown in the sheet
  *             { type: "flat", amount, cap }        one price for up to `cap` guests
@@ -33,62 +36,57 @@ window.HOUSE_BOOK = {
   },
 
   filters: [
-    { id: "eat", name: "Eat" },
-    { id: "rest", name: "Rest" },
-    { id: "farm", name: "Farm" },
-    { id: "luxor", name: "Luxor" },
-    { id: "events", name: "Events" }
+    { id: "dining", name: "Dining" },
+    { id: "spa", name: "Spa" },
+    { id: "farm", name: "The farm" },
+    { id: "luxor", name: "Luxor and beyond" },
+    { id: "evenings", name: "Evenings" }
   ],
 
   experiences: [
-    // Eat
-    { id: "mfk", cat: "eat", name: "Moudira Farm Kitchen", img: "w_farm_kitchen.jpg",
+    // Dining
+    { id: "mfk", cat: "dining", name: "Moudira Farm Kitchen", img: "w_farm_kitchen.jpg",
       text: "Our chef cooks over a wood fire, from what was picked that day.",
       label: "Few tables", meta: "Lunch, and dinner from 18:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
       times: ["13:00", "13:30", "18:00", "19:00", "19:30", "20:30"] },
-    { id: "dining-room", cat: "eat", name: "The Main Dining Room", img: "w_dining_room.jpg",
+    { id: "dining-room", cat: "dining", name: "The Ottoman Hall and Courtyard", img: "w_ottoman.jpg",
       text: "Breakfast under the trees, dinner by candlelight in the Courtyard.",
       label: "Breakfast and dinner", meta: "06:00 to 10:30 · 18:00 to 22:30",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
       times: ["19:00", "19:30", "20:00", "20:30", "21:00"] },
-    { id: "khan", cat: "eat", name: "Khan Al Moudira", img: "w_plates.jpg",
+    { id: "khan", cat: "dining", name: "Khan Al Moudira", img: "w_plates.jpg",
       text: "Egyptian and Lebanese, inside or among the palms.",
       label: "Lunch and dinner", meta: "12:00 to 22:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
       times: ["12:30", "13:30", "19:00", "19:30", "20:00", "21:00"] },
-    { id: "pool-pavilion", cat: "eat", name: "The Pool Pavilion", img: "w_pool_pergola.jpg",
+    { id: "pool-pavilion", cat: "dining", name: "The Pool Pavilion", img: "w_pool_pergola.jpg",
       text: "A Mediterranean lunch by the water.",
       label: "Lunch", meta: "12:00 to 17:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
       times: ["12:30", "13:00", "13:30", "14:00", "15:00"] },
-    { id: "private-dinner", cat: "eat", name: "A private dinner", img: "w_tent_garden.jpg",
-      text: "In the garden, on the Khan rooftop, or in a villa.",
-      label: "Venue from 150 USD", meta: "For two, or for fifty",
-      action: "reserve", dept: "restaurants", pricing: { type: "from", amount: 150 },
-      times: ["19:00", "19:30", "20:00", "20:30"] },
 
-    // Rest
-    { id: "signature-massage", cat: "rest", name: "Signature massage", img: "w_marble.jpg",
+    // Spa
+    { id: "signature-massage", cat: "spa", name: "Signature massage", img: "w_massage.jpg",
       text: "The spa's own massage, by therapists from Kerala.",
       label: "110 USD", meta: "60 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 110 },
       times: ["10:00", "12:00", "15:00", "17:00", "18:30"] },
-    { id: "nile-package", cat: "rest", name: "The Nile Package", img: "w_massage.jpg",
+    { id: "nile-package", cat: "spa", name: "The Nile Package", img: "w_marble.jpg",
       text: "Head massage, body scrub, hammam and foot massage.",
       label: "165 USD", meta: "120 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 165 },
       times: ["10:00", "14:00", "16:30"] },
-    { id: "nervous-system", cat: "rest", name: "Nervous system regulation", img: "w_calm_room.jpg",
+    { id: "nervous-system", cat: "spa", name: "Nervous system regulation", img: "w_calm_room.jpg",
       text: "Massage, sound and craniosacral, for calm and sleep.",
       label: "210 USD", meta: "90 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 210 },
       times: ["11:00", "16:00", "18:00"] },
-    { id: "yoga", cat: "rest", name: "Yoga in the garden", img: "w_garden.jpg",
+    { id: "yoga", cat: "spa", name: "Yoga in the garden", img: "w_garden.jpg",
       text: "Daily, in the garden.",
       label: "With our compliments", meta: "15:00",
       action: "join", dept: "spa", pricing: { type: "free" } },
-    { id: "primal-moves", cat: "rest", name: "Primal Moves", img: "w_pool_garden.jpg",
+    { id: "primal-moves", cat: "spa", name: "Primal Moves", img: "w_pool_garden.jpg",
       text: "Movement by the pool, Monday to Friday.",
       label: "With our compliments", meta: "17:00",
       action: "join", dept: "spa", pricing: { type: "free" } },
@@ -107,6 +105,10 @@ window.HOUSE_BOOK = {
       label: "150 USD", meta: "1.5 hours",
       action: "reserve", dept: "farm", pricing: { type: "flat", amount: 150, cap: 4 },
       times: ["08:00", "10:00", "16:00"] },
+    { id: "stable-rides", cat: "farm", name: "Stable rides", img: null,
+      text: "Horses from the house stable, for a ride through the farm.",   // TO CONFIRM: House Book line, duration, price
+      label: "On request", meta: "Tell us when you would like to ride",
+      action: "ask", dept: "farm", pricing: { type: "none" } },
     { id: "little-explorers", cat: "farm", name: "Little Explorers", img: "w_farm_ostrich.jpg",
       text: "The animals, pottery, paper or pizza, for children.",
       label: "From 25 USD a child", meta: "Crafts 70, a pizza class 25",
@@ -129,12 +131,12 @@ window.HOUSE_BOOK = {
     { id: "west-bank", cat: "luxor", name: "The West Bank", img: "west_bank_temple.jpg",
       text: "Hatshepsut, the Valley of the Kings, Medinet Habu, with your guide.",
       label: "260 USD for two", meta: "4 to 5 hours, tickets extra",
-      action: "reserve", dept: "concierge", pricing: { type: "flat", amount: 260, cap: 2 },
+      action: "arrange", dept: "concierge", pricing: { type: "flat", amount: 260, cap: 2 },
       times: ["07:00", "08:00", "14:00"] },
     { id: "karnak", cat: "luxor", name: "Karnak and Luxor Temple", img: "karnak_columns.jpg",
       text: "The great temples of the East Bank, with your guide.",
       label: "250 USD for two", meta: "4 to 5 hours, tickets extra",
-      action: "reserve", dept: "concierge", pricing: { type: "flat", amount: 250, cap: 2 },
+      action: "arrange", dept: "concierge", pricing: { type: "flat", amount: 250, cap: 2 },
       times: ["07:00", "08:00", "14:00"] },
     { id: "felucca", cat: "luxor", name: "A felucca at sunset", img: "w_felucca.jpg",
       text: "An hour under sail, leaving before dusk.",
@@ -144,28 +146,57 @@ window.HOUSE_BOOK = {
     { id: "classic-car", cat: "luxor", name: "The village, by classic car", img: "w_classic_car.jpg",
       text: "Two unhurried hours of local life, with a driver.",
       label: "From 200 USD", meta: "2 hours",
-      action: "reserve", dept: "transport", pricing: { type: "from", amount: 200 },
+      action: "arrange", dept: "transport", pricing: { type: "from", amount: 200 },
       times: ["09:00", "15:00"] },
+    { id: "cycling-tour", cat: "luxor", name: "The cycling tour", img: null,
+      text: "By mountain bike to the Valley of the Kings.",               // TO CONFIRM: House Book line, duration, price
+      label: "On request", meta: "Tell us your day",
+      action: "ask", dept: "concierge", pricing: { type: "none" } },
 
-    // Events
-    { id: "nile-sunset", cat: "events", name: "A private sunset on the Nile", img: "w_nile_deck.jpg",
+    // Evenings
+    { id: "nile-sunset", cat: "evenings", name: "A private sunset on the Nile", img: "w_nile_deck.jpg",
       text: "An hour on the river at 17:30, a picnic and a waiter.",
       label: "200 USD for two", meta: "1 hour",
-      action: "reserve", dept: "concierge", pricing: { type: "flat", amount: 200, cap: 2 }, times: ["17:30"] },
-    { id: "celebration", cat: "events", name: "A celebration", img: "w_dessert.jpg",
+      action: "arrange", dept: "concierge", pricing: { type: "flat", amount: 200, cap: 2 }, times: ["17:30"] },
+    { id: "celebration", cat: "evenings", name: "A celebration", img: "w_dessert.jpg",
       text: "A cake and the room dressed for a birthday or anniversary.",
       label: "With our compliments", meta: "A day's notice",
-      action: "reserve", dept: "frontoffice", pricing: { type: "free" },
+      action: "arrange", dept: "frontoffice", pricing: { type: "free" },
       notePrompt: "Whose celebration, and what we should write" },
-    { id: "set-nefru", cat: "events", name: "Set Nefru", img: "w_dahabiya_dusk.jpg",
+    { id: "set-nefru", cat: "evenings", name: "Set Nefru", img: "w_dahabiya_dusk.jpg",
       text: "Our own dahabiya, restored, for up to eight guests.",
       label: "On request", meta: "Three to eight days on the Nile",
       action: "ask", dept: "concierge", pricing: { type: "none" } },
-    { id: "karnak-night", cat: "events", name: "Karnak by night", img: null,
+    { id: "karnak-night", cat: "evenings", name: "Karnak by night", img: null,
       text: "The sound and light show, with transfer.",
       label: "90 USD for up to three", meta: "About 3 hours",
-      action: "reserve", dept: "concierge", pricing: { type: "flat", amount: 90, cap: 3 } }
+      action: "arrange", dept: "concierge", pricing: { type: "flat", amount: 90, cap: 3 } }
   ],
+
+  // Private dining: about 20 places in all; the House Book names these 17. Lines and capacities to come from Thomas.
+  privateDining: {
+    intro: "A table anywhere at the house, for two or for fifty. Venue from 150 USD.",
+    venues: [
+      { id: "pd-pool-pavilion", name: "The Pool Pavilion" },
+      { id: "pd-shahrazade", name: "Shahrazade" },
+      { id: "pd-winter-garden", name: "The Winter Garden" },
+      { id: "pd-farm-tent", name: "The Farm Tent" },
+      { id: "pd-event-hall", name: "The Event Hall" },
+      { id: "pd-winter-terrace", name: "The Winter Terrace" },
+      { id: "pd-garden-patio", name: "The Garden Patio" },
+      { id: "pd-khan-rooftop", name: "The Khan Al Moudira Rooftop" },
+      { id: "pd-gazebo", name: "The Gazebo" },
+      { id: "pd-ottoman-hall", name: "The Ottoman Hall and Courtyard" },
+      { id: "pd-conference-room", name: "The Conference Room" },
+      { id: "pd-villa-zeina", name: "Dinner in Villa Zeina" },
+      { id: "pd-villa-nubia", name: "Dinner in Villa Nubia" },
+      { id: "pd-villa-casbah", name: "Dinner in Villa Casbah" },
+      { id: "pd-beit-al-fananeen", name: "Dinner in Beit Al Fananeen" },
+      { id: "pd-owners-loft", name: "Dinner in the Owners' Loft" },
+      { id: "pd-louxor-loft", name: "Dinner in the Louxor Loft" }
+    ]
+    // each venue may add: line: "One line", capacity: 12
+  },
 
   priceNote: "Prices in US dollars, charged to your room. Restaurant prices are plus service and taxes.",
 
@@ -201,7 +232,7 @@ window.HOUSE_BOOK = {
     ],
     fillFirst: [
       { id: "balloon", name: "The balloon at sunrise", sub: "About 2.5 hours", price: "280 USD for two", img: "w_dawn_fields.jpg" },
-      { id: "signature-massage", name: "An evening at the spa", sub: "Best reserved a day ahead", price: "From 110 USD", img: "w_marble.jpg" },
+      { id: "signature-massage", name: "An evening at the spa", sub: "Best reserved a day ahead", price: "From 110 USD", img: "w_massage.jpg" },
       { id: "mfk", name: "Dinner at the Farm Kitchen", sub: "Few tables", price: "", img: "w_farm_kitchen.jpg" }
     ]
   },
@@ -211,16 +242,20 @@ window.HOUSE_BOOK = {
     airportCar: { name: "A car to the airport", sub: "We suggest leaving 3 hours before an international flight", price: 50 }
   },
 
-  menu: {
-    intro: "At any hour, in about 20 minutes. From 12:00, any restaurant's menu.",
+  // Room service: the guest chooses a restaurant, then its menu, then when.
+  // Only restaurants with a menu here are shown. Thomas to confirm which restaurants deliver.
+  roomService: {
     note: "US dollars, plus service and taxes. Tell us of any allergy and the kitchen will confirm.",
-    items: [
+    restaurants: [
+      { id: "in-room", name: "In room dining", line: "At any hour, in about 20 minutes.",
+        items: [
       { id: "egyptian-meal", name: "The daily Egyptian meal", price: 21 },
       { id: "soup", name: "Soup of the day", price: 7 },
       { id: "pasta", name: "Pasta", price: 13, label: "13 to 14.50" },
       { id: "burger", name: "The Moudira beef burger", price: 21.5 },
       { id: "falafel", name: "Falafel sandwich", price: 15 },
       { id: "sweets", name: "Oriental sweets", price: 8.5 }
+    ] }
     ]
   },
 
@@ -228,13 +263,14 @@ window.HOUSE_BOOK = {
     { id: "towels", name: "Fresh towels" },
     { id: "pillow", name: "Pillow or blanket", sub: "From the pillow menu" },
     { id: "laundry", name: "Laundry", sub: "In by 10:00, back today" },
-    { id: "turndown", name: "Turndown", sub: "18:00 to 21:00" }
+    { id: "turndown", name: "Turndown", sub: "18:00 to 21:00" },
+    { id: "hk-other", name: "Other request", sub: "A short note", note: true }
   ],
   repairs: [
     { id: "ac", name: "Air conditioning" },
     { id: "power", name: "Lights and power" },
     { id: "water", name: "Water" },
-    { id: "other", name: "Something else" }
+    { id: "other", name: "Something else", sub: "A short note", note: true }
   ],
 
   askChips: ["A table tonight", "A car", "Late check out", "The spa"],

@@ -33,10 +33,17 @@
   const LOADED = new Set(); // photos already shown once: no second fade on re-render
   window.__imgIn = (el) => { LOADED.add(el.getAttribute("src")); el.classList.add("ld"); };
   const img = (f, alt, cls) => {
-    if (!f) return `<div class="ph${cls ? " " + cls : ""}">Photograph to come</div>`;
+    if (!f) return ""; // no photograph: the card shows as text
     const src = "img/" + esc(f), done = LOADED.has(src);
     return `<span class="iw${cls ? " " + cls : ""}"><img src="${src}" alt="${esc(alt || "")}" loading="lazy" decoding="async"${done ? ' class="ld" style="transition:none"' : ""} onload="__imgIn(this)" onerror="__imgIn(this)"></span>`;
   };
+
+  const VERB = { reserve: "Reserve", join: "Join", arrange: "Arrange", ask: "Ask" };
+  const verb = (e) => VERB[e.action] || "Reserve";
+  const backTo = (href) => `<a class="back" href="${href}"><span aria-hidden="true">‹</span> Back</a>`;
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
 
   function dayLabel(ymd) {
     const t = U.houseDate(0);
@@ -89,17 +96,18 @@
   }
 
   /* ---------------- icons ---------------- */
+  // Matilda's tab bar icons: [resting, selected]
   const ICON = {
-    today: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
-    discover: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
-    room: '<path d="M3 18V7M3 13h18v5M21 13a3 3 0 0 0-3-3h-7v3M6.5 11.5a1.5 1.5 0 1 0 0-.01"/>',
-    ask: '<path d="M4 5h16v11H9l-5 4z"/>',
-    house: '<path d="M5 21V10a7 7 0 0 1 14 0v11M3 21h18M10 21v-6a2 2 0 0 1 4 0v6"/>'
+    today: ['<circle cx="12" cy="12" r="4" fill="none"/><path d="M18.80 12.00L20.80 12.00" fill="none"/><path d="M16.81 16.81L18.22 18.22" fill="none"/><path d="M12.00 18.80L12.00 20.80" fill="none"/><path d="M7.19 16.81L5.78 18.22" fill="none"/><path d="M5.20 12.00L3.20 12.00" fill="none"/><path d="M7.19 7.19L5.78 5.78" fill="none"/><path d="M12.00 5.20L12.00 3.20" fill="none"/><path d="M16.81 7.19L18.22 5.78" fill="none"/>', '<circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M18.80 12.00L20.80 12.00" fill="none"/><path d="M16.81 16.81L18.22 18.22" fill="none"/><path d="M12.00 18.80L12.00 20.80" fill="none"/><path d="M7.19 16.81L5.78 18.22" fill="none"/><path d="M5.20 12.00L3.20 12.00" fill="none"/><path d="M7.19 7.19L5.78 5.78" fill="none"/><path d="M12.00 5.20L12.00 3.20" fill="none"/><path d="M16.81 7.19L18.22 5.78" fill="none"/>'],
+    discover: ['<path d="M12 3.5C12.7 8.8 15.2 11.3 20.5 12C15.2 12.7 12.7 15.2 12 20.5C11.3 15.2 8.8 12.7 3.5 12C8.8 11.3 11.3 8.8 12 3.5z" fill="none"/>', '<path d="M12 3.5C12.7 8.8 15.2 11.3 20.5 12C15.2 12.7 12.7 15.2 12 20.5C11.3 15.2 8.8 12.7 3.5 12C8.8 11.3 11.3 8.8 12 3.5z" fill="currentColor"/>'],
+    room: ['<path d="M7 20.5V10a5 5 0 0 1 10 0v10.5z" fill="none"/><circle cx="14.4" cy="14.2" r="1" fill="currentColor" stroke="none"/>', '<path d="M7 20.5V10a5 5 0 0 1 10 0v10.5z" fill="currentColor"/><circle cx="14.4" cy="14.2" r="1" fill="var(--bg)" stroke="none"/>'],
+    ask: ['<path d="M12 4.5c4.7 0 8.5 3.2 8.5 7.2s-3.8 7.2-8.5 7.2c-1.2 0-2.3-.2-3.3-.6L4.5 19.8l1.2-3.4C4.3 15.1 3.5 13.5 3.5 11.7c0-4 3.8-7.2 8.5-7.2z" fill="none"/>', '<path d="M12 4.5c4.7 0 8.5 3.2 8.5 7.2s-3.8 7.2-8.5 7.2c-1.2 0-2.3-.2-3.3-.6L4.5 19.8l1.2-3.4C4.3 15.1 3.5 13.5 3.5 11.7c0-4 3.8-7.2 8.5-7.2z" fill="currentColor"/>'],
+    house: ['<path d="M5 21V11.5Q5 5.5 12 2.8Q19 5.5 19 11.5V21" fill="none"/><path d="M9 21V14Q9 10.5 12 9Q15 10.5 15 14V21z" fill="none"/><path d="M3.5 21h17" fill="none"/>', '<path d="M5 21V11.5Q5 5.5 12 2.8Q19 5.5 19 11.5V21" fill="none"/><path d="M9 21V14Q9 10.5 12 9Q15 10.5 15 14V21z" fill="currentColor"/><path d="M3.5 21h17" fill="none"/>']
   };
   function tabbar(active) {
-    const t = [["today", "#/today"], ["discover", "#/discover/eat"], ["room", "#/room/dining"], ["ask", "#/ask"], ["house", "#/house"]];
+    const t = [["today", "#/today"], ["discover", "#/discover/all"], ["room", "#/room/dining"], ["ask", "#/ask"], ["house", "#/house"]];
     return `<nav class="tabbar" aria-label="Main">${t.map(([k, href]) =>
-      `<a href="${href}"${k === active ? ' aria-current="page"' : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg><span>${esc(C.tabs[k])}</span></a>`).join("")}</nav>`;
+      `<a href="${href}"${k === active ? ' aria-current="page"' : ""}><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k][k === active ? 1 : 0]}</svg><span>${esc(C.tabs[k])}</span></a>`).join("")}</nav>`;
   }
 
   /* ---------------- requests shown on the day ---------------- */
@@ -206,10 +214,11 @@
       <div class="kicker" style="margin-top:10px">${esc(fmtDay(t, { weekday: "long", day: "numeric", month: "long" }))}</div>
       <h1>${greeting()}, ${esc(s.guest.first)}</h1>
       <div class="sun"><span>Sunrise ${fmtClock(sun.rise)}</span><span>Sunset ${fmtClock(sun.set)}</span>${S.temp ? `<span>${esc(S.temp)}</span>` : ""}</div>
+      ${homeNote()}
       ${se ? `<button class="card" data-act="reserve" data-id="${se.id}">${img(sug.img || se.img, se.name)}
         <div class="in"><div class="kicker">${esc(sug.kicker)}</div><div class="title">${esc(se.name)}</div><div class="line">${esc(sug.line)}</div></div></button>` : ""}
       <h2 class="section">Your day</h2>
-      ${today.length ? fade(today).map(itemRow).join("") : `<div class="item"><span class="s" style="margin:0">Nothing booked yet. <a href="#/discover/eat" style="text-decoration:underline">Discover</a> what the house offers.</span></div>`}
+      ${today.length ? fade(today).map(itemRow).join("") : `<div class="item"><span class="s" style="margin:0">Nothing booked yet. <a href="#/discover/all" style="text-decoration:underline">Discover</a> what the house offers.</span></div>`}
       <h2 class="section">Daily at the house</h2>
       ${fade(daily).map(itemRow).join("")}
       ${tomorrow.length ? `<h2 class="section">Tomorrow</h2>${tomorrow.map(itemRow).join("")}` : ""}
@@ -220,6 +229,17 @@
       <a class="row" href="#/requests"><span class="grow">Your requests</span><span class="val">${open ? open + " awaiting" : S.requests.length || "None yet"}</span>${chev}</a>
     </div>`;
   };
+
+  /* Add to the home screen: first visit only, closable */
+  function homeNote() {
+    if (!S.showHomeNote || standalone) return "";
+    const demo = API.mode === "demo";
+    if (!isIOS && !isAndroid && !demo) return "";
+    const ios = 'On iPhone: tap Share <svg width="15" height="18" viewBox="0 0 15 18" aria-hidden="true" style="vertical-align:-3px"><path d="M7.5 1v10M4 4.5L7.5 1 11 4.5M3 7.5H1.5v9h12v-9H12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>, then “Add to Home Screen”.';
+    const and = "On Android: tap the menu (three dots), then “Add to Home screen”.";
+    const how = isIOS ? ios : isAndroid ? and : ios + "<br>" + and;
+    return `<div class="homenote" role="note"><div><b>Keep Al Moudira on your home screen</b><span>${how}</span></div><button class="close-text" data-act="home-note-close">Close</button></div>`;
+  }
 
   V.arrival = () => {
     const s = S.session, A = S.arrival;
@@ -234,7 +254,7 @@
         `<button class="radio" role="radio" aria-checked="${A.car === c.id}" data-act="car" data-id="${c.id}"><span class="o"></span><span class="grow" style="flex:1">${esc(c.name)}</span>${c.price ? `<span class="val small">${money(c.price)}</span>` : ""}</button>`).join("")}</div>
       <label class="f">Allergies and preferences<textarea class="input" data-bind="arrival.allergies" placeholder="Anything the kitchen and the house should know">${esc(A.allergies)}</textarea></label>
       <h2 class="section">Reserve now, these fill first</h2>
-      ${HB.arrival.fillFirst.map((f) => `<div class="row" style="gap:14px">${img(f.img, "", "thumb")}<span class="grow"><span class="serif" style="font-size:18px;line-height:1.3;display:block">${esc(f.name)}</span>${f.price ? `<span class="sub" style="color:var(--ink);font-weight:500">${esc(f.price)}</span>` : ""}<span class="sub">${esc(f.sub)}</span></span><button class="pill soft" data-act="reserve" data-id="${f.id}" style="height:36px;padding:0 14px">Reserve</button></div>`).join("")}
+      ${HB.arrival.fillFirst.map((f) => `<div class="row" style="gap:14px">${img(f.img, "", "thumb")}<span class="grow"><span class="serif" style="font-size:18px;line-height:1.3;display:block">${esc(f.name)}</span>${f.price ? `<span class="sub" style="color:var(--ink);font-weight:500">${esc(f.price)}</span>` : ""}<span class="sub">${esc(f.sub)}</span></span><button class="pill soft" data-act="reserve" data-id="${f.id}">${verb(exp(f.id))}</button></div>`).join("")}
       <button class="btn" data-act="send-arrival" style="margin-top:30px">${sent ? "Send an update" : "Send to the house"}</button>
       ${S.session.bookings && S.session.bookings.length ? "" : `<p class="note">You can change anything here until you arrive.</p>`}
     </div>`;
@@ -260,18 +280,31 @@
   };
 
   /* ---------- Discover ---------- */
+  function offerRow(e) {
+    const label = e.label; // the price, or one short word; hours and duration are in the panel
+    return `<div class="orow${e.img ? "" : " text"}">${e.img ? img(e.img, "", "othumb") : ""}
+      <button class="otext" data-act="reserve" data-id="${e.id}"><span class="oname">${esc(e.name)}</span><span class="oprice">${esc(label)}</span></button>
+      <button class="pill soft" data-act="reserve" data-id="${e.id}" aria-label="${verb(e)}: ${esc(e.name)}">${verb(e)}</button></div>`;
+  }
+  function venueRow(v) {
+    const sub = [v.line, v.capacity ? "Up to " + v.capacity : ""].filter(Boolean).join(" · ");
+    return `<div class="orow text">
+      <button class="otext" data-act="venue" data-id="${v.id}"><span class="oname">${esc(v.name)}</span>${sub ? `<span class="oprice">${esc(sub)}</span>` : ""}</button>
+      <button class="pill soft" data-act="venue" data-id="${v.id}" aria-label="Ask about this: ${esc(v.name)}">Ask about this</button></div>`;
+  }
   V.discover = (r) => {
-    const cat = HB.filters.some((f) => f.id === r.arg) ? r.arg : "eat";
-    const list = HB.experiences.filter((e) => e.cat === cat);
-    const btn = (e) => e.action === "join" ? "Join" : e.action === "ask" ? "Ask" : "Reserve";
+    const cat = HB.filters.some((f) => f.id === r.arg) ? r.arg : "all";
+    const shown = cat === "all" ? HB.filters : HB.filters.filter((f) => f.id === cat);
+    const PD = HB.privateDining;
     return `<div class="screen">
       <h1 style="margin-top:10px">Discover</h1>
-      <div class="chips" role="tablist" aria-label="Filter">${HB.filters.map((f) => `<a class="chip" href="#/discover/${f.id}"${f.id === cat ? ' aria-current="page"' : ""}>${esc(f.name)}</a>`).join("")}</div>
-      ${list.map((e) => `<article class="offer">${img(e.img, e.name)}
-        <h2 class="name" style="font-weight:400;margin-bottom:0">${esc(e.name)}</h2>
-        <div class="text">${esc(e.text)}</div>
-        <div class="foot"><span class="l"><b>${esc(e.label)}</b>${esc(e.meta)}</span>
-          <button class="pill soft" data-act="reserve" data-id="${e.id}" aria-label="${btn(e)}: ${esc(e.name)}">${btn(e)}</button></div></article>`).join("")}
+      <div class="chips" aria-label="Show">${[{ id: "all", name: "All" }].concat(HB.filters).map((f) => `<a class="chip" href="#/discover/${f.id}"${f.id === cat ? ' aria-current="page"' : ""}>${esc(f.name)}</a>`).join("")}</div>
+      ${shown.map((f) => {
+        const list = HB.experiences.filter((e) => e.cat === f.id);
+        if (!list.length) return "";
+        return `<h2 class="section dhead">${esc(f.name)}</h2>${list.map(offerRow).join("")}
+          ${f.id === "dining" && PD && PD.venues.length ? `<h3 class="subhead">Private dining</h3><p class="small" style="margin:4px 0 6px">${esc(PD.intro)}</p>${PD.venues.map(venueRow).join("")}` : ""}`;
+      }).join("")}
       <p class="note">${esc(HB.priceNote)}</p>
     </div>`;
   };
@@ -287,7 +320,7 @@
     return `<div class="screen">
       <div class="done-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path${fresh ? ' class="tick"' : ""} d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
       <h1 class="${fresh ? "after-tick" : ""}" style="text-align:center;font-size:26px;margin-top:18px">${ok ? "Confirmed" : "Request sent"}</h1>
-      <p class="lede" style="text-align:center;margin-top:8px">${wa ? "Sent to reception on WhatsApp. They will reply to you there."
+      <p class="lede" style="text-align:center;margin-top:8px">${wa ? "Sent to reception on WhatsApp. We will confirm there."
         : ok ? `Confirmed by ${q.confirmedBy ? "the " + esc(q.confirmedBy.toLowerCase()) + " team" : "the house"}. We look forward to it.`
         : `Our ${esc(d)} team will confirm ${q.kind === "reserve" ? "it" : "this"} here, and by email.`}</p>
       ${wa ? "" : `<div class="progress" aria-label="Progress"><span class="on">Sent</span><span class="bar"></span><span class="${ok ? "on" : ""}">Confirmed</span><span class="bar"></span><span>Enjoyed</span></div>`}
@@ -297,13 +330,13 @@
         ${q.guests || q.total ? `<div class="row"><span class="grow">${q.guests ? `${q.guests} ${q.guests === 1 ? "guest" : "guests"}` : ""}</span><span class="val">${esc(q.total || "")}</span></div>` : ""}
         ${q.note ? `<div class="row"><span class="grow small" style="color:var(--body)">“${esc(q.note)}”</span></div>` : ""}
       </div>
-      <a class="btn soft" href="#/${S.lastTab === "discover" ? "discover/eat" : S.lastTab === "room" ? "room/dining" : S.lastTab}" style="margin-top:28px">Done</a>
+      <a class="btn soft" href="#/${S.lastTab === "discover" ? "discover/all" : S.lastTab === "room" ? "room/dining" : S.lastTab}" style="margin-top:28px">Done</a>
       <a class="btn" href="#/requests" style="margin-top:10px;background:none;color:var(--ink);height:44px;font-weight:500">All your requests</a>
     </div>`;
   };
 
   V.requests = () => `<div class="screen">
-      <a href="#/today" class="small" style="display:inline-block;margin-top:6px">‹ ${esc(C.tabs.today)}</a>
+      ${backTo("#/today")}
       <h1>Your requests</h1>
       ${S.requests.length ? S.requests.map((q) => `<a class="row" href="#/request/${q.id}"><span class="grow">${esc(q.title)}<span class="sub">${esc([q.date ? dayLabel(q.date) : "", q.time].filter(Boolean).join(" · "))}${q.date || q.time ? " · " : ""}${esc(dept(q.dept).name)}</span></span><span class="status ${q.status === "confirmed" ? "confirmed" : ""}"><span class="dot"></span>${statusLabel(q)}</span>${chev}</a>`).join("")
         : `<p class="lede">Nothing yet. Everything you reserve or ask for appears here, with its status.</p>`}
@@ -314,7 +347,7 @@
     const b = S.session.bill;
     if (!b) return `<div class="screen"><h1>Your bill</h1><p class="lede">Ask at reception, or dial 0.</p></div>`;
     return `<div class="screen">
-      <a href="#/today" class="small" style="display:inline-block;margin-top:6px">‹ ${esc(C.tabs.today)}</a>
+      ${backTo("#/today")}
       <div class="kicker" style="margin-top:18px">Your bill</div>
       <h1>${money(b.total)}</h1>
       <div style="margin-top:18px;border-top:0.5px solid var(--line)">${b.lines.map(([n, v]) => `<div class="row"><span class="grow">${esc(n)}</span><span class="val">${money(v)}</span></div>`).join("")}</div>
@@ -325,26 +358,35 @@
   };
 
   /* ---------- Room ---------- */
+  const RS = () => HB.roomService.restaurants.filter((x) => x.items && x.items.length);
+  const priceText = (i) => i.label || (i.price % 1 ? i.price.toFixed(2) : String(i.price));
   V.room = (r) => {
     const care = r.arg === "care";
     const seg = `<div class="seg" role="tablist"><a href="#/room/dining"${care ? "" : ' aria-current="page"'}>Dining</a><a href="#/room/care"${care ? ' aria-current="page"' : ""}>Housekeeping</a></div>`;
     if (care) {
       const done = (id) => S.requests.some((q) => q.itemId === id && q.date === U.houseDate(0));
-      const tile = (t, kind) => `<button class="tile${done(t.id) ? " done" : ""}" data-act="care" data-kind="${kind}" data-id="${t.id}"><b>${esc(t.name)}</b>${done(t.id) ? "<span>Requested</span>" : t.sub ? `<span>${esc(t.sub)}</span>` : ""}</button>`;
+      const tile = (t, kind) => `<button class="tile${done(t.id) && !t.note ? " done" : ""}" data-act="care" data-kind="${kind}" data-id="${t.id}"><b>${esc(t.name)}</b>${done(t.id) && !t.note ? "<span>Requested</span>" : t.sub ? `<span>${esc(t.sub)}</span>` : ""}</button>`;
       return `<div class="screen"><h1 style="margin-top:10px">${esc(C.tabs.room)}</h1>${seg}
         <h2 class="section" style="margin-top:26px">Housekeeping</h2><div class="tiles">${HB.housekeeping.map((t) => tile(t, "housekeeping")).join("")}</div>
         <h2 class="section">Something to fix</h2><div class="tiles">${HB.repairs.map((t) => tile(t, "maintenance")).join("")}</div>
         <p class="note">One tap sends it to the team. You will see it here when it is on its way.</p></div>`;
     }
-    const n = Object.values(S.cart).reduce((a, b) => a + b, 0);
-    const total = HB.menu.items.reduce((a, i) => a + (S.cart[i.id] || 0) * i.price, 0);
-    const from = HB.menu.items.some((i) => S.cart[i.id] && i.label);
-    return `<div class="screen"><h1 style="margin-top:10px">${esc(C.tabs.room)}</h1>${seg}
-      <p class="small" style="margin-top:16px">${esc(HB.menu.intro)}</p>
-      <h2 class="section" style="margin-top:22px">In room dining</h2>
-      ${HB.menu.items.map((i) => { const q = S.cart[i.id] || 0; return `<div class="menu-row"><span class="grow">${esc(i.name)}</span><span class="p">${esc(i.label || (i.price % 1 ? i.price.toFixed(2) : String(i.price)))}</span>
-        <span class="qty">${q ? `<button class="round" data-act="qty" data-id="${i.id}" data-d="-1" aria-label="One fewer ${esc(i.name)}">−</button><span class="round on" aria-label="${q} in your order">${q}</span>` : ""}<button class="round" data-act="qty" data-id="${i.id}" data-d="1" aria-label="Add ${esc(i.name)}">+</button></span></div>`; }).join("")}
-      <p class="note" style="font-size:13px">${esc(HB.menu.note)}</p>
+    const rest = RS().find((x) => x.id === r.sub);
+    if (!rest) {
+      return `<div class="screen"><h1 style="margin-top:10px">${esc(C.tabs.room)}</h1>${seg}
+        <h2 class="section" style="margin-top:26px">Choose a restaurant</h2>
+        ${RS().map((x) => `<a class="row" href="#/room/dining/${x.id}"><span class="grow">${esc(x.name)}<span class="sub">${esc(x.line || "")}</span></span>${chev}</a>`).join("")}</div>`;
+    }
+    const cart = S.cart.rid === rest.id ? S.cart.items : {};
+    const n = Object.values(cart).reduce((a, b) => a + b, 0);
+    const total = rest.items.reduce((a, i) => a + (cart[i.id] || 0) * i.price, 0);
+    const from = rest.items.some((i) => cart[i.id] && i.label);
+    return `<div class="screen">${backTo("#/room/dining")}<h1>${esc(rest.name)}</h1>
+      <p class="small" style="margin-top:8px">${esc(rest.line || "")}</p>
+      <div style="margin-top:14px;border-top:0.5px solid var(--line)">
+      ${rest.items.map((i) => { const q = cart[i.id] || 0; return `<div class="menu-row"><span class="grow">${esc(i.name)}</span><span class="p">${esc(priceText(i))}</span>
+        <span class="qty">${q ? `<button class="round" data-act="qty" data-r="${rest.id}" data-id="${i.id}" data-d="-1" aria-label="One fewer ${esc(i.name)}">−</button><span class="round on" aria-label="${q} in your order">${q}</span>` : ""}<button class="round" data-act="qty" data-r="${rest.id}" data-id="${i.id}" data-d="1" aria-label="Add ${esc(i.name)}">+</button></span></div>`; }).join("")}</div>
+      <p class="note">${esc(HB.roomService.note)}</p>
       ${n ? `<div class="orderbar"><button class="btn" data-act="order"><span>Order ${n} ${n === 1 ? "item" : "items"}</span><span>${from ? "from " : ""}${money(total)}</span></button></div>` : ""}
     </div>`;
   };
@@ -363,7 +405,7 @@
       <div class="composer">
         <div class="chips" style="margin-top:0">${HB.askChips.map((c) => `<button class="chip" data-act="chip" data-text="${esc(c)}">${esc(c)}</button>`).join("")}</div>
         <form data-form="ask"><label class="sr" for="msg">Message</label><input id="msg" class="input" data-bind="askDraft" value="${esc(S.askDraft)}" placeholder="Message" autocomplete="off" enterkeyhint="send">
-        <button class="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg></button></form>
+        <button class="send-text">Send</button></form>
       </div></div>`;
   };
 
@@ -378,18 +420,18 @@
 
   V.house = () => `<div class="screen">
       <h1 style="margin-top:10px">${esc(C.tabs.house)}</h1>
-      ${MAP}
+      <a class="mapbtn" href="#/house/map" aria-label="Open the map">${HB.map && HB.map.img ? img(HB.map.img, "Map of Al Moudira", "mapimg") : MAP}<span class="maptag">Open the map</span></a>
       <div style="margin-top:10px">
       <a class="row" href="#/house/practical"><span class="grow">Practical information<span class="sub">Hours, wifi, the clinic, getting around</span></span>${chev}</a>
       <a class="row" href="#/house/addresses"><span class="grow">Useful addresses<span class="sub">Hospitals, police, the clinic</span></span>${chev}</a>
       ${HB.team.length ? `<a class="row" href="#/house/team"><span class="grow">The team<span class="sub">Who looks after you</span></span>${chev}</a>` : ""}
-      <a class="row" href="#/house/photos"><span class="grow">Press, photographs, brochures<span class="sub">${esc(HB.distinctions)}</span></span>${chev}</a>
+      <a class="row" href="#/house/photos"><span class="grow">${HB.brochures.length ? "Press, photographs, brochures" : "Press and photographs"}<span class="sub">${esc(HB.distinctions)}</span></span>${chev}</a>
       <a class="row" href="#/requests"><span class="grow">Your requests</span>${chev}</a>
       ${API.mode === "demo" ? `<a class="row" href="#/demo"><span class="grow">Demo settings<span class="sub">Before arrival, during the stay, the last day</span></span>${chev}</a>` : ""}
       <button class="row" data-act="signout"><span class="grow" style="color:var(--muted)">Sign out on this phone</span></button></div>
     </div>`;
 
-  const back = `<a href="#/house" class="small" style="display:inline-flex;align-items:center;gap:4px;margin-top:6px">‹ ${esc(C.tabs.house)}</a>`;
+  const back = backTo("#/house");
   V.practical = () => `<div class="screen">${back}<h1>Practical information</h1><div style="margin-top:18px;border-top:0.5px solid var(--line)">
       ${HB.practical.map(([k, v]) => `<div class="row"><span class="grow">${esc(k)}</span><span class="val">${esc(v)}</span></div>`).join("")}</div>
       <p class="note">For anything at any hour, dial 0, or <a style="text-decoration:underline" href="https://wa.me/${C.whatsappNumber}">WhatsApp ${esc(HB.house.whatsappDisplay)}</a>.</p></div>`;
@@ -403,9 +445,12 @@
       <div class="photos">${HB.photos.map((p, i) => img(p, "", i === 0 ? "wide" : "")).join("")}</div>
       <h2 class="section">Press</h2>
       ${HB.press.map((p) => `<div class="row"><span class="grow">${esc(p.name)}</span></div>`).join("")}
-      <h2 class="section">Brochures</h2>
-      ${HB.brochures.length ? HB.brochures.map((b) => `<a class="row" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="grow">${esc(b.name)}</span>${chev}</a>`).join("") : `<p class="small" style="margin-top:12px">To come.</p>`}
+      ${HB.brochures.length ? `<h2 class="section">Brochures</h2>${HB.brochures.map((b) => `<a class="row" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="grow">${esc(b.name)}</span>${chev}</a>`).join("")}` : ""}
       <p class="note">${esc(HB.distinctions)}.</p></div>`;
+
+  V.map = () => `<div class="screen">${back}<h1>The map</h1>
+      <div class="mapview${S.mapZoom ? " zoom" : ""}">${HB.map && HB.map.img ? `<img src="img/${esc(HB.map.img)}" alt="Map of Al Moudira">` : MAP}</div>
+      <button class="btn soft" data-act="map-zoom" style="margin-top:16px">${S.mapZoom ? "Fit to screen" : "Enlarge"}</button></div>`;
 
   V.demo = () => {
     const p = API.getPhase ? API.getPhase() : "during";
@@ -459,7 +504,8 @@
     }
     const st = S.sheet;
     sh.setAttribute("aria-label", st.title);
-    sh.innerHTML = `<div class="grabber"></div><button class="close" data-act="close" aria-label="Close"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>` + (st.type === "exp" ? sheetExp(st) : sheetSimple(st));
+    sh.innerHTML = `<div class="grabber"></div><button class="close-text sheet-close" data-act="close">Close</button>` +
+      (st.type === "exp" ? sheetExp(st) : st.type === "handoff" ? sheetHandoff(st) : st.type === "when" ? sheetWhen(st) : sheetSimple(st));
     if (first) requestAnimationFrame(() => { sc.classList.add("on"); sh.classList.add("on"); const f = sh.querySelector("h2"); if (f) { f.tabIndex = -1; f.focus({ preventScroll: true }); } });
   }
   function sheetExp(st) {
@@ -468,31 +514,58 @@
     const times = timesFor(e, st.date);
     if (times && (!st.time || !times.includes(st.time))) st.time = times[0] || null; // first sensible time
     const gl = e.guestsLabel || "Guests";
-    return `<h2 style="padding-right:40px">${esc(e.name)}</h2><p class="small" style="margin:6px 0 0">${esc(e.sheetLine || [e.label, e.meta].filter(Boolean).join(" · "))}</p>
+    return `<h2 style="padding-right:80px">${esc(e.name)}</h2><p class="small" style="margin:8px 0 0;color:var(--body)">${esc(e.text)}</p><p class="small" style="margin:4px 0 0">${esc(e.sheetLine || [e.label, e.meta].filter(Boolean).join(" · "))}</p>
       ${ask ? "" : `<div class="lbl">Day</div><div class="chips wrap">${days.map((d) => `<button class="chip" aria-pressed="${st.date === d}" data-act="s-date" data-v="${d}">${esc(dayLabel(d))}</button>`).join("")}</div>
       ${times ? `<div class="lbl">Time</div><div class="chips wrap">${times.map((t) => `<button class="chip" aria-pressed="${st.time === t}" data-act="s-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
       <div class="stepper" style="margin-top:14px"><span>${gl}</span><span class="qty"><button class="round" data-act="s-g" data-d="-1" aria-label="Fewer">−</button><span style="min-width:22px;text-align:center" aria-live="polite">${st.guests}</span><button class="round" data-act="s-g" data-d="1" aria-label="More">+</button></span></div>`}
       <label class="f">${ask ? "Tell us what you have in mind" : esc(e.notePrompt || "Anything we should know")}<textarea class="input" data-bind="sheet.note" style="min-height:64px" placeholder="${ask ? "Dates, how many, any question" : "Optional"}">${esc(st.note || "")}</textarea></label>
-      ${ask ? "" : e.pricing.type === "none" && e.dept === "restaurants" ? `<p class="small" style="text-align:center;font-size:13px;margin:22px 0 -8px">No charge to reserve</p>` : `<div class="total"><span>${join ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
-      ${e.terms ? `<p class="small" style="margin:4px 0 0;font-size:13px">${esc(e.terms)}</p>` : ""}
-      <button class="btn" data-act="s-send" style="margin-top:20px"${!ask && e.times && !st.time ? " disabled" : ""}>${ask ? "Send" : join ? "Join" : "Reserve"}</button>
-      ${!ask && e.times && !st.time ? `<p class="small" style="text-align:center;font-size:13px;margin:8px 0 0">Choose a time</p>` : ""}`;
+      ${ask ? "" : e.pricing.type === "none" && e.dept === "restaurants" ? `<p class="small" style="text-align:center;font-size:15px;margin:22px 0 -8px">No charge to reserve</p>` : `<div class="total"><span>${join ? "" : "Total"}</span><span>${esc(priceFor(e, st.guests))}</span></div>`}
+      ${e.terms ? `<p class="small" style="margin:6px 0 0;font-size:15px">${esc(e.terms)}</p>` : ""}
+      <button class="btn" data-act="s-send" style="margin-top:20px"${!ask && e.times && !st.time ? " disabled" : ""}>${verb(e)}</button>
+      ${!ask && e.times && !st.time ? `<p class="small" style="text-align:center;font-size:15px;margin:8px 0 0">No times left today: choose another day</p>` : ""}`;
+  }
+  /* Before WhatsApp opens: say what will happen, and the way without it */
+  function sheetHandoff(st) {
+    return `<h2 style="padding-right:80px">${esc(st.title)}</h2>
+      <p class="lede" style="margin-top:10px">WhatsApp will open with your request written. Press Send, and we will confirm.</p>
+      <button class="btn" data-act="handoff-go" style="margin-top:22px">Open WhatsApp</button>
+      <p class="small" style="text-align:center;margin:14px 0 0">No WhatsApp? Dial 0.</p>
+      ${API.mode === "demo" ? `<p class="small" style="text-align:center;margin:6px 0 0;font-size:15px">Demo: WhatsApp will not open, and nothing is sent.</p>` : ""}`;
+  }
+  /* Room service: when */
+  function slots() {
+    const now = new Date(), out = [];
+    const t = new Date(now.getTime() + 45 * 60000);
+    const m = t.getMinutes(); t.setMinutes(m < 30 ? 30 : 60, 0, 0);
+    for (let i = 0; i < 10; i++) out.push(fmtClock(new Date(t.getTime() + i * 30 * 60000)));
+    return out;
+  }
+  function sheetWhen(st) {
+    const sl = slots();
+    return `<h2 style="padding-right:80px">When</h2><p class="small" style="margin:6px 0 0">${esc(st.summary)}</p>
+      <div class="chips wrap" style="margin-top:16px"><button class="chip" aria-pressed="${!st.at}" data-act="w-asap">As soon as possible</button><button class="chip" aria-pressed="${!!st.at}" data-act="w-pick">At a chosen time</button></div>
+      ${st.at ? `<div class="lbl">Time</div><div class="chips wrap">${sl.map((t) => `<button class="chip" aria-pressed="${st.at === t}" data-act="w-time" data-v="${t}">${t}</button>`).join("")}</div>` : ""}
+      <div class="total"><span>Total</span><span>${esc(st.total)}</span></div>
+      <button class="btn" data-act="w-send" style="margin-top:16px">Place order</button>`;
   }
   const SIMPLE = {
     late: () => ({ title: HB.lastDay.lateCheckOut.name, line: HB.lastDay.lateCheckOut.sub, price: money(HB.lastDay.lateCheckOut.price) + ", to your room", dept: "frontoffice", cta: "Request late check out", date: S.session.departure }),
     airport: () => ({ title: HB.lastDay.airportCar.name, line: HB.lastDay.airportCar.sub, price: money(HB.lastDay.airportCar.price) + ", to your room", dept: "transport", cta: "Reserve the car", date: S.session.departure, field: "Your flight, and the time" }),
     bill: () => ({ title: "Bring my bill to breakfast", line: "We will bring your bill to your table, to settle at leisure.", dept: "frontoffice", cta: "Yes, please", date: S.session.departure }),
     word: () => ({ title: "Leave us a word", line: "Read by the team, and by the owner.", dept: "frontoffice", cta: "Send", field: "Your word on your stay", required: true }),
-    other: () => ({ title: "Something else", line: "Tell us what needs attention, and we will come.", dept: "maintenance", cta: "Send", field: "What needs attention", required: true, date: U.houseDate(0) })
+    other: () => ({ title: "Something else", line: "Tell us what needs attention, and we will come.", dept: "maintenance", cta: "Send", field: "What needs attention", required: true, date: U.houseDate(0) }),
+    "hk-other": () => ({ title: "Other request", line: "Anything else for your room.", dept: "housekeeping", cta: "Send", field: "What would you like?", required: true, date: U.houseDate(0) })
   };
   function sheetSimple(st) {
-    return `<h2>${esc(st.title)}</h2><p class="small" style="margin:6px 0 0">${esc(st.line || "")}</p>
+    return `<h2 style="padding-right:80px">${esc(st.title)}</h2><p class="small" style="margin:6px 0 0">${esc(st.line || "")}</p>
       ${st.field ? `<label class="f">${esc(st.field)}<textarea class="input" data-bind="sheet.note" style="min-height:70px">${esc(st.note || "")}</textarea></label>` : ""}
       ${st.price ? `<div class="total"><span>Total</span><span>${esc(st.price)}</span></div>` : ""}
       <button class="btn" data-act="s-simple" style="margin-top:20px"${st.required && !(st.note || "").trim() ? " disabled" : ""}>${esc(st.cta)}</button>`;
   }
 
-  async function send(req) {
+  const HANDOFF = () => API.mode === "whatsapp" || API.mode === "demo";
+  async function send(req, confirmed) {
+    if (HANDOFF() && !confirmed) { openSheet({ type: "handoff", title: req.title, req }); return null; }
     try {
       const r = await API.sendRequest(req, S.session);
       S.justSent = r.id;
@@ -536,6 +609,30 @@
         if (r) location.hash = "#/request/" + r.id;
         break;
       }
+      case "venue": {
+        const v = HB.privateDining.venues.find((x) => x.id === id);
+        openSheet({ type: "simple", kind: "ask", title: v.name, line: [v.line, v.capacity ? "Up to " + v.capacity : ""].filter(Boolean).join(" · ") || "A private dinner, arranged for you.",
+          dept: "restaurants", cta: "Ask about this", field: "The date, how many, and anything you have in mind", note: "" });
+        break;
+      }
+      case "handoff-go": {
+        const req = st.req;
+        if (req.kind === "message") { await API.sendMessage(req.text, S.session); closeSheet(); S.messages = await API.listMessages(); render(true); break; }
+        const r = await send(req, true);
+        if (r) location.hash = "#/request/" + r.id;
+        break;
+      }
+      case "w-asap": st.at = null; drawSheet(); break;
+      case "w-pick": st.at = slots()[0]; drawSheet(); break;
+      case "w-time": st.at = el.dataset.v; drawSheet(); break;
+      case "w-send": {
+        const r = await send({ kind: "dining", title: st.rname, dept: "dining", date: U.houseDate(0), time: st.at || null,
+          summary: st.summary + " · " + (st.at ? "at " + st.at : "as soon as possible"), total: st.total });
+        if (r) { S.cart = {}; location.hash = "#/request/" + r.id; }
+        break;
+      }
+      case "home-note-close": S.showHomeNote = false; render(true); break;
+      case "map-zoom": S.mapZoom = !S.mapZoom; render(true); break;
       case "simple": openSheet(Object.assign({ type: "simple", kind: el.dataset.kind, note: "" }, SIMPLE[el.dataset.kind]())); break;
       case "s-simple": {
         const r = await send({ kind: st.kind, title: st.title, dept: st.dept, date: st.date || null, summary: st.line, total: st.price || "", note: (st.note || "").trim() });
@@ -544,6 +641,7 @@
       }
       case "care": {
         if (id === "other") { openSheet(Object.assign({ type: "simple", kind: "repair", note: "" }, SIMPLE.other())); break; }
+        if (id === "hk-other") { openSheet(Object.assign({ type: "simple", kind: "housekeeping", note: "" }, SIMPLE["hk-other"]())); break; }
         const list = el.dataset.kind === "housekeeping" ? HB.housekeeping : HB.repairs;
         const t = list.find((x) => x.id === id);
         if (S.requests.some((q) => q.itemId === id && q.date === U.houseDate(0))) { toast("Already on its way"); break; }
@@ -551,13 +649,19 @@
         if (r) { toast(t.name + ": sent to " + dept(el.dataset.kind).name.toLowerCase()); render(true); }
         break;
       }
-      case "qty": S.cart[id] = Math.max(0, (S.cart[id] || 0) + Number(el.dataset.d)); if (!S.cart[id]) delete S.cart[id]; render(true); break;
+      case "qty": {
+        const rid = el.dataset.r;
+        if (S.cart.rid !== rid) S.cart = { rid, items: {} };
+        const it = S.cart.items; it[id] = Math.max(0, (it[id] || 0) + Number(el.dataset.d)); if (!it[id]) delete it[id];
+        render(true); break;
+      }
       case "order": {
-        const items = HB.menu.items.filter((i) => S.cart[i.id]);
-        const total = items.reduce((a, i) => a + S.cart[i.id] * i.price, 0);
-        const r = await send({ kind: "dining", title: "In room dining", dept: "dining", date: U.houseDate(0), time: fmtClock(new Date()),
-          summary: items.map((i) => S.cart[i.id] + " × " + i.name).join(", "), total: (items.some((i) => i.label) ? "from " : "") + money(total) + ", to your room" });
-        if (r) { S.cart = {}; location.hash = "#/request/" + r.id; }
+        const rest = RS().find((x) => x.id === S.cart.rid); if (!rest) break;
+        const items = rest.items.filter((i) => S.cart.items[i.id]);
+        const total = items.reduce((a, i) => a + S.cart.items[i.id] * i.price, 0);
+        openSheet({ type: "when", title: "When", rname: rest.name, at: null,
+          summary: items.map((i) => S.cart.items[i.id] + " × " + i.name).join(", "),
+          total: (items.some((i) => i.label) ? "from " : "") + money(total) + ", to your room" });
         break;
       }
       case "chip": S.askDraft = el.dataset.text + ": "; render(true); const m = document.getElementById("msg"); if (m) { m.focus(); m.setSelectionRange(m.value.length, m.value.length); } break;
@@ -570,7 +674,7 @@
         break;
       }
       case "phase": API.setPhase(id); S.session = await API.restore(); toast("Showing: " + el.dataset.name.toLowerCase()); render(true); break;
-      case "reset": await API.reset(); S.session = null; S.requests = []; S.messages = []; S.cart = {}; location.hash = "#/signin"; render(); break;
+      case "reset": await API.reset(); U.store.del("homeNote"); S.session = null; S.requests = []; S.messages = []; S.cart = {}; location.hash = "#/signin"; render(); break;
       case "signout-to-email": await API.signOut(); S.session = null; break;
       case "signout": await API.signOut(); S.session = null; S.requests = []; location.hash = "#/signin"; render(); break;
       case "open-link": { // demo: the personal link in the email
@@ -597,6 +701,7 @@
       if (f === "ask") {
         const text = (S.askDraft || "").trim(); if (!text) return;
         S.askDraft = "";
+        if (API.mode === "whatsapp") { openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text } }); return; }
         await API.sendMessage(text, S.session);
         S.messages = await API.listMessages();
         render(true); scrollEnd();
@@ -612,12 +717,12 @@
    * ========================================================= */
   function route() {
     const h = (location.hash || "#/today").slice(2).split("/");
-    const r = { name: h[0] || "today", arg: h[1] || null };
+    const r = { name: h[0] || "today", arg: h[1] || null, sub: h[2] || null };
     if (r.name === "house" && r.arg) r.name = r.arg;
     if (r.name === "welcome") r.name = "splash";
     return r;
   }
-  const TAB_OF = { today: "today", arrival: "today", bill: "today", requests: "today", discover: "discover", room: "room", ask: "ask", house: "house", practical: "house", addresses: "house", team: "house", photos: "house", demo: "house" };
+  const TAB_OF = { today: "today", arrival: "today", bill: "today", requests: "today", discover: "discover", room: "room", ask: "ask", house: "house", practical: "house", addresses: "house", team: "house", photos: "house", demo: "house", map: "house" };
   const PUBLIC = ["signin", "email"];
 
   let lastRoute = "";
@@ -635,7 +740,7 @@
     app.innerHTML = html + (S.session && tab && !ended ? tabbar(tab) : "") +
       (API.mode === "demo" && S.session && r.name !== "splash" && r.name !== "demo" ? `<a class="demo" href="#/demo" style="display:flex;align-items:center">Demo</a>` : "");
     if (bind) { const n = app.querySelector(`[data-bind="${bind}"]`); if (n) { n.focus({ preventScroll: true }); try { n.setSelectionRange(pos, pos); } catch (e) { } } }
-    const key = r.name + "/" + r.arg;
+    const key = r.name + "/" + r.arg + "/" + r.sub;
     if (!keepScroll && key !== lastRoute) window.scrollTo(0, 0);
     if (r.name === "ask" && key !== lastRoute) setTimeout(scrollEnd, 0);
     // opening screen fades into Today
@@ -691,6 +796,7 @@
     } else {
       S.session = await API.restore();
     }
+    if (U.store.get("homeNote", null) == null) { S.showHomeNote = true; U.store.set("homeNote", "seen"); } // first visit only
     await refresh();
     render();
     loadTemp();
