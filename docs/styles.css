@@ -209,7 +209,7 @@ h1.big { transform-origin: left bottom; transition: opacity .15s linear; }
 
 /* Back, Close and Send, with words */
 .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin: 2px 0 0 -4px; padding: 0 12px 0 4px; font-size: 17px; font-weight: 500; color: var(--ink); }
-.close-text { min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--surface); font-size: 16px; font-weight: 500; flex-shrink: 0; }
+.close-text { min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--surface); font-size: 16px; font-weight: 500; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
 .sheet-close { position: absolute; top: 12px; right: 16px; }
 .send-text { min-height: 44px; padding: 0 20px; border-radius: 22px; background: var(--ink); color: var(--on-ink); font-size: 17px; font-weight: 600; flex-shrink: 0; }
 
@@ -254,3 +254,26 @@ h1.big { transform-origin: left bottom; transition: opacity .15s linear; }
   .chips:not(.wrap) { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px; }
   .tabbar a span { text-align: center; line-height: 1.1; }
 }
+
+/* Documents in context */
+.olink { flex-basis: 100%; min-height: 44px; display: flex; align-items: center; padding-left: 76px; font-size: 17px; font-weight: 500; color: var(--nile); text-decoration: underline; text-underline-offset: 3px; }
+.iw.othumb.doc { box-shadow: 0 0 0 0.5px var(--line); }
+.iw.othumb.doc img { object-fit: cover; object-position: top; }
+.docpages { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.iw.docpage { width: 100%; border-radius: 6px; box-shadow: 0 0 0 0.5px var(--line); }
+.iw.docpage img { object-fit: contain; }
+
+/* The map on Al Moudira, and its key */
+.iw.mapimg { width: 100%; border-radius: 12px; }
+.mapkey { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; font-size: 16px; line-height: 1.35; color: var(--body); }
+.mapkey li { display: flex; align-items: flex-start; gap: 8px; }
+.mapkey .num { flex: 0 0 24px; height: 24px; border-radius: 50%; background: var(--nile); color: #fff; font-size: 13px; font-weight: 600; display: grid; place-items: center; margin-top: -1px; }
+
+/* The map, full screen */
+.mapfull { position: fixed; inset: 0; z-index: 60; background: var(--linen); display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+.mapbar { display: flex; justify-content: space-between; gap: 10px; padding: calc(10px + var(--safe-t)) 14px 10px; }
+.mapstage { flex: 1; min-height: 0; overflow: hidden; touch-action: none; display: flex; align-items: center; justify-content: center; cursor: grab; }
+.mapstage img { max-width: 100%; max-height: 100%; transform-origin: center center; user-select: none; -webkit-user-drag: none; will-change: transform; }
+.maphint { text-align: center; font-size: 15px; color: var(--muted); margin: 6px 0 calc(10px + var(--safe-b)); }
+.mapkeysheet { max-height: 42vh; overflow-y: auto; background: var(--bg); border-radius: 16px 16px 0 0; padding: 6px 20px calc(16px + var(--safe-b)); box-shadow: 0 -6px 24px rgba(0,0,0,.08); }
+@media (max-width: 330px) { .mapkey { grid-template-columns: 1fr; } .olink { padding-left: 0; } }

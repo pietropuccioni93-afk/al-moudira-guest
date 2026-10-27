@@ -284,7 +284,15 @@
     const label = e.label; // the price, or one short word; hours and duration are in the panel
     return `<div class="orow${e.img ? "" : " text"}">${e.img ? img(e.img, "", "othumb") : ""}
       <button class="otext" data-act="reserve" data-id="${e.id}"><span class="oname">${esc(e.name)}</span><span class="oprice">${esc(label)}</span></button>
-      <button class="pill soft" data-act="reserve" data-id="${e.id}" aria-label="${verb(e)}: ${esc(e.name)}">${verb(e)}</button></div>`;
+      <button class="pill soft" data-act="reserve" data-id="${e.id}" aria-label="${verb(e)}: ${esc(e.name)}">${verb(e)}</button>
+      ${DOC(HB.placements.menus[e.id]) ? `<a class="olink" href="#/doc/${esc(HB.placements.menus[e.id])}">See the menu</a>` : ""}</div>`;
+  }
+  const DOC = (id) => id && HB.documents[id] ? Object.assign({ id }, HB.documents[id]) : null;
+  function docRow(id, verbText) {
+    const d = DOC(id); if (!d) return "";
+    return `<div class="orow"><span class="iw othumb doc"><img src="${esc(d.cover)}" alt="" loading="lazy" onload="__imgIn(this)" onerror="__imgIn(this)"></span>
+      <a class="otext" href="#/doc/${esc(d.id)}"><span class="oname">${esc(d.name)}</span><span class="oprice">${esc(d.line || "")}</span></a>
+      <a class="pill soft" href="#/doc/${esc(d.id)}" aria-label="${esc(verbText || "Read")}: ${esc(d.name)}">${esc(verbText || "Read")}</a></div>`;
   }
   function venueRow(v) {
     const sub = [v.line, v.capacity ? "Up to " + v.capacity : ""].filter(Boolean).join(" · ");
@@ -302,8 +310,12 @@
       ${shown.map((f) => {
         const list = HB.experiences.filter((e) => e.cat === f.id);
         if (!list.length) return "";
-        return `<h2 class="section dhead">${esc(f.name)}</h2>${list.map(offerRow).join("")}
-          ${f.id === "dining" && PD && PD.venues.length ? `<h3 class="subhead">Private dining</h3><p class="small" style="margin:4px 0 6px">${esc(PD.intro)}</p>${PD.venues.map(venueRow).join("")}` : ""}`;
+        const P = HB.placements;
+        return `<h2 class="section dhead">${esc(f.name)}</h2>
+          ${f.id === "farm" ? docRow(P.farmTop) : ""}
+          ${list.map(offerRow).join("")}
+          ${(P.sections[f.id] || []).map((id) => docRow(id)).join("")}
+          ${f.id === "dining" && PD && PD.venues.length ? `<h3 class="subhead">Private dining</h3><p class="small" style="margin:4px 0 6px">${esc(PD.intro)}</p>${docRow(P.privateDining, "See the brochure")}${PD.venues.map(venueRow).join("")}` : ""}`;
       }).join("")}
       <p class="note">${esc(HB.priceNote)}</p>
     </div>`;
@@ -410,18 +422,13 @@
   };
 
   /* ---------- Al Moudira ---------- */
-  const MAP = `<svg viewBox="0 0 350 250" width="100%" role="img" aria-label="A sketch map of Al Moudira: the hotel, the farm, the workshops" class="map">
-<g fill="none" stroke="#b9a98d" stroke-width="1" stroke-dasharray="3 4"><path d="M120 120 C160 128 190 150 230 170"/><path d="M120 120 C150 90 190 70 238 62"/><path d="M230 170 C250 150 262 120 270 100"/></g>
-<g fill="#fffdf8" stroke="#8b7a5e" stroke-width="1.2"><rect x="40" y="80" width="96" height="78" rx="4"/><rect x="58" y="96" width="24" height="20"/><rect x="92" y="96" width="30" height="46"/><rect x="58" y="124" width="24" height="18"/><rect x="206" y="150" width="58" height="38" rx="4"/><rect x="214" y="40" width="62" height="40" rx="4"/><circle cx="292" cy="112" r="16"/></g>
-<g fill="#cfdedd" stroke="#8b7a5e" stroke-width="1"><rect x="150" y="100" width="34" height="18" rx="3"/></g>
-<g fill="#8fa070" opacity="0.55"><circle cx="30" cy="60" r="5"/><circle cx="160" cy="60" r="5"/><circle cx="180" cy="200" r="5"/><circle cx="310" cy="190" r="5"/><circle cx="320" cy="60" r="5"/><circle cx="196" cy="94" r="4"/></g>
-<g font-family="-apple-system, Inter, Arial, sans-serif" font-size="10.5" fill="#5a4e3a"><text x="44" y="174">The hotel and courtyards</text><text x="146" y="134">Pool</text><text x="206" y="204">Workshops</text><text x="214" y="96">Farm Kitchen</text><text x="276" y="142">Stable</text></g>
-<g font-family="Vollkorn, Georgia, serif" font-size="14" fill="#5a4e3a" font-style="italic"><text x="246" y="232">the farm</text></g></svg>`;
 
   V.house = () => `<div class="screen">
       <h1 style="margin-top:10px">${esc(C.tabs.house)}</h1>
-      <a class="mapbtn" href="#/house/map" aria-label="Open the map">${HB.map && HB.map.img ? img(HB.map.img, "Map of Al Moudira", "mapimg") : MAP}<span class="maptag">Open the map</span></a>
+      <a class="mapbtn" href="#/house/map" aria-label="Open the map full screen"><span class="iw mapimg" style="aspect-ratio:${HB.map.ratio}"><img src="img/${esc(HB.map.img)}" alt="Map of the farm and the hotel" onload="__imgIn(this)" onerror="__imgIn(this)"></span><span class="maptag">Open the map</span></a>
+      ${mapKey()}
       <div style="margin-top:10px">
+      ${DOC(HB.placements.house) ? `<a class="row" href="#/doc/${esc(HB.placements.house)}"><span class="grow">${esc(DOC(HB.placements.house).name)}<span class="sub">${esc(DOC(HB.placements.house).line)}</span></span>${chev}</a>` : ""}
       <a class="row" href="#/house/practical"><span class="grow">Practical information<span class="sub">Hours, wifi, the clinic, getting around</span></span>${chev}</a>
       <a class="row" href="#/house/addresses"><span class="grow">Useful addresses<span class="sub">Hospitals, police, the clinic</span></span>${chev}</a>
       ${HB.team.length ? `<a class="row" href="#/house/team"><span class="grow">The team<span class="sub">Who looks after you</span></span>${chev}</a>` : ""}
@@ -448,9 +455,60 @@
       ${HB.brochures.length ? `<h2 class="section">Brochures</h2>${HB.brochures.map((b) => `<a class="row" href="${esc(b.url)}" target="_blank" rel="noopener"><span class="grow">${esc(b.name)}</span>${chev}</a>`).join("")}` : ""}
       <p class="note">${esc(HB.distinctions)}.</p></div>`;
 
-  V.map = () => `<div class="screen">${back}<h1>The map</h1>
-      <div class="mapview${S.mapZoom ? " zoom" : ""}">${HB.map && HB.map.img ? `<img src="img/${esc(HB.map.img)}" alt="Map of Al Moudira">` : MAP}</div>
-      <button class="btn soft" data-act="map-zoom" style="margin-top:16px">${S.mapZoom ? "Fit to screen" : "Enlarge"}</button></div>`;
+  function mapKey() {
+    return `<ol class="mapkey" aria-label="Key to the map">${HB.map.key.map((k, i) => `<li><span class="num">${i + 1}</span>${esc(k)}</li>`).join("")}</ol>`;
+  }
+  /* The map, full screen: two fingers to zoom, one to move, double tap to zoom in or out */
+  V.map = () => `<div class="mapfull" role="dialog" aria-label="Map of the farm and the hotel">
+      <div class="mapbar"><a class="close-text" href="#/house">Close</a><button class="close-text" data-act="map-key">${S.mapKeyOpen ? "Hide the key" : "Show the key"}</button></div>
+      <div class="mapstage" id="mapstage"><img id="mapimg" src="img/${esc(HB.map.img)}" alt="Map of the farm and the hotel" draggable="false"></div>
+      <p class="maphint" aria-hidden="true">Pinch to zoom</p>
+      ${S.mapKeyOpen ? `<div class="mapkeysheet">${mapKey()}</div>` : ""}
+    </div>`;
+  function setupMapZoom() {
+    const stage = document.getElementById("mapstage"), im = document.getElementById("mapimg");
+    if (!stage || !im) return;
+    const z = S.mapZ || (S.mapZ = { s: 1, x: 0, y: 0 });
+    const pts = new Map(); let last = null, lastTap = 0;
+    const clamp = () => {
+      z.s = Math.max(1, Math.min(5, z.s));
+      const r = stage.getBoundingClientRect(), w = im.offsetWidth * z.s, h = im.offsetHeight * z.s;
+      const mx = Math.max(0, (w - r.width) / 2), my = Math.max(0, (h - r.height) / 2);
+      z.x = Math.max(-mx, Math.min(mx, z.x)); z.y = Math.max(-my, Math.min(my, z.y));
+    };
+    const apply = () => { clamp(); im.style.transform = `translate(${z.x}px, ${z.y}px) scale(${z.s})`; };
+    const zoomAt = (cx, cy, ns) => {
+      const r = stage.getBoundingClientRect(), ox = cx - (r.left + r.width / 2), oy = cy - (r.top + r.height / 2);
+      const k = ns / z.s; z.x = ox - (ox - z.x) * k; z.y = oy - (oy - z.y) * k; z.s = ns; apply();
+    };
+    const state = () => { const p = [...pts.values()]; if (p.length === 1) return { x: p[0].x, y: p[0].y }; const [a, b] = p; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) }; };
+    stage.addEventListener("pointerdown", (e) => {
+      stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = state();
+      if (pts.size === 1) { const now = Date.now(); if (now - lastTap < 300) { zoomAt(e.clientX, e.clientY, z.s > 1.2 ? 1 : 2.5); if (z.s === 1) { z.x = z.y = 0; apply(); } } lastTap = now; }
+    });
+    stage.addEventListener("pointermove", (e) => {
+      if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const now = state(); if (!last) { last = now; return; }
+      if (now.d && last.d) zoomAt(now.x, now.y, z.s * (now.d / last.d));
+      z.x += now.x - last.x; z.y += now.y - last.y; apply(); last = now;
+    });
+    const up = (e) => { pts.delete(e.pointerId); last = pts.size ? state() : null; };
+    stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+    stage.addEventListener("wheel", (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, z.s * (e.deltaY < 0 ? 1.15 : 0.87)); }, { passive: false });
+    if (im.complete) apply(); else im.onload = apply;
+  }
+
+  /* A document, kept in the app: its pages to read here, and a light PDF to keep */
+  V.doc = (r) => {
+    const d = DOC(r.arg);
+    if (!d) return `<div class="screen">${backTo(S.docBack || "#/house")}<h1>Not found</h1></div>`;
+    const pages = Array.from({ length: d.pages }, (_, i) => `files/${d.id}/p${String(i + 1).padStart(2, "0")}.jpg`);
+    return `<div class="screen">${backTo(S.docBack || "#/house")}<h1>${esc(d.name)}</h1>
+      <p class="small" style="margin-top:6px">${esc(d.line || "")}</p>
+      <a class="btn soft" href="files/${esc(d.id)}.pdf" download="${esc(d.name)}.pdf" target="_blank" rel="noopener" style="margin-top:16px">Keep a copy (PDF)</a>
+      <div class="docpages">${pages.map((src, i) => `<span class="iw docpage" style="aspect-ratio:${i === 0 && d.id === "the-farm" ? 1077 / 1536 : d.ratio}"><img src="${src}" alt="Page ${i + 1} of ${d.pages}" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" onload="__imgIn(this)" onerror="__imgIn(this)"></span>`).join("")}</div>
+      <p class="note" style="text-align:center">Pinch to zoom in on a page.</p></div>`;
+  };
 
   V.demo = () => {
     const p = API.getPhase ? API.getPhase() : "during";
@@ -634,7 +692,7 @@
         break;
       }
       case "home-note-close": S.showHomeNote = false; render(true); break;
-      case "map-zoom": S.mapZoom = !S.mapZoom; render(true); break;
+      case "map-key": S.mapKeyOpen = !S.mapKeyOpen; render(true); break;
       case "simple": openSheet(Object.assign({ type: "simple", kind: el.dataset.kind, note: "" }, SIMPLE[el.dataset.kind]())); break;
       case "s-simple": {
         const r = await send({ kind: st.kind, title: st.title, dept: st.dept, date: st.date || null, summary: st.line, total: st.price || "", note: (st.note || "").trim() });
@@ -724,7 +782,7 @@
     if (r.name === "welcome") r.name = "splash";
     return r;
   }
-  const TAB_OF = { today: "today", arrival: "today", bill: "today", requests: "today", discover: "discover", room: "room", ask: "ask", house: "house", practical: "house", addresses: "house", team: "house", photos: "house", demo: "house", map: "house" };
+  const TAB_OF = { today: "today", arrival: "today", bill: "today", requests: "today", discover: "discover", room: "room", ask: "ask", house: "house", practical: "house", addresses: "house", team: "house", photos: "house", demo: "house", doc: "house" };
   const PUBLIC = ["signin", "email"];
 
   let lastRoute = "";
@@ -735,12 +793,13 @@
     const view = V[r.name] || V.today;
     // keep the focused field and caret through a re-render
     const a = document.activeElement, bind = a && a.dataset && a.dataset.bind, pos = bind && a.selectionStart;
-    const tab = r.name === "request" ? S.lastTab : TAB_OF[r.name];
-    if (tab && r.name !== "request") S.lastTab = tab;
+    const tab = r.name === "request" || r.name === "doc" ? S.lastTab : TAB_OF[r.name];
+    if (tab && r.name !== "request" && r.name !== "doc") S.lastTab = tab;
+    if (r.name !== "doc" && r.name !== "map") S.docBack = location.hash || "#/today"; // Back returns where the guest came from
     const html = view(r);
     const ended = S.session && phase(S.session) === "ended";
     app.innerHTML = html + (S.session && tab && !ended ? tabbar(tab) : "") +
-      (API.mode === "demo" && S.session && r.name !== "splash" && r.name !== "demo" ? `<a class="demo" href="#/demo" style="display:flex;align-items:center">Demo</a>` : "");
+      (API.mode === "demo" && S.session && !["splash", "demo", "map"].includes(r.name) ? `<a class="demo" href="#/demo" style="display:flex;align-items:center">Demo</a>` : "");
     if (bind) { const n = app.querySelector(`[data-bind="${bind}"]`); if (n) { n.focus({ preventScroll: true }); try { n.setSelectionRange(pos, pos); } catch (e) { } } }
     const key = r.name + "/" + r.arg + "/" + r.sub;
     if (!keepScroll && key !== lastRoute) window.scrollTo(0, 0);
@@ -751,12 +810,13 @@
       setTimeout(() => app.classList.remove("enter"), 600);
     }
     setupTopbar(r.name);
+    if (r.name === "map") { S.mapZ = S.mapZ && lastRoute.startsWith("map") ? S.mapZ : { s: 1, x: 0, y: 0 }; setupMapZoom(); }
     lastRoute = key;
     document.title = (r.name === "today" ? "" : (C.tabs[tab] || "") + " · ") + "Al Moudira";
   }
 
   /* Large title shrinks into a slim bar when the guest scrolls */
-  const NO_BAR = ["splash", "signin", "email", "request"];
+  const NO_BAR = ["splash", "signin", "email", "request", "map"];
   let barTitle = null;
   function setupTopbar(name) {
     let bar = document.querySelector(".topbar");

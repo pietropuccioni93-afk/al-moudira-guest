@@ -1,6 +1,6 @@
 /* Keeps the app quick on the hotel wifi and readable with no signal.
  * Pages and photos come from the cache; /api calls always go to the network. */
-const VERSION = "am-v1";
+const VERSION = "am-v2";
 const CORE = ["./", "index.html", "styles.css", "config.js", "content.js", "api.js", "app.js", "img/logo.png", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
@@ -13,7 +13,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
   // Network first for the app itself (so updates show), cache first for photos
-  if (url.pathname.includes("/img/")) {
+  if (url.pathname.includes("/img/") || url.pathname.includes("/files/")) { // photos, booklets and the map stay on the phone
     e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
       const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); return res;
     })));

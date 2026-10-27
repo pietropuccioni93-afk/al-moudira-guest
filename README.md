@@ -21,7 +21,8 @@ Design: Matilda Fender. Build: Pietro Puccioni, with KIT. October 2026.
 | Request status: Sent, Confirmed, Enjoyed; list of all requests | Working (demo confirms after a few seconds) |
 | Room: in room dining with a running order; housekeeping and repairs in one tap | Working |
 | Ask: chat with the front office, quick requests | Working (demo replies) |
-| Al Moudira: map sketch, practical information, useful addresses with tap to call, team, photographs, press | Working (team and brochures to come) |
+| Al Moudira: the Farm booklet map (full screen, pinch zoom) with its key, the Guest Directory, practical information, useful addresses with tap to call, photographs, press | Working (team to come) |
+| Documents in context: The Farm booklet in Farm, the Guest Directory under Al Moudira; menus and brochures appear where they belong once their files are added (`content.js` > `documents`, `placements`) | Working |
 | Light only (the logo is dark ink), large text, screen readers, reduced motion, phone and desktop | Working |
 | Works offline once opened (service worker), home screen icon (manifest) | Working on the live site |
 | Server: Cloudbeds sign in, stay, bill, requests on the booking | **Scaffold, not yet run** (see 4) |

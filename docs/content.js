@@ -5,7 +5,8 @@
  *
  * Experience fields
  *   id        unique, short, no spaces
- *   cat       dining | spa | farm | luxor | evenings
+ *   cat       dining | wellness | farm | luxor | evenings
+ *   doc       optional: a document (see `documents`) shown as "See the menu" on this row
  *   name, text  title and one line
  *   img       photograph in /img, or null (then it shows as a text card)
  *   label     first line under the text (bold)
@@ -37,9 +38,9 @@ window.HOUSE_BOOK = {
 
   filters: [
     { id: "dining", name: "Dining" },
-    { id: "spa", name: "Spa" },
-    { id: "farm", name: "The farm" },
-    { id: "luxor", name: "Luxor and beyond" },
+    { id: "wellness", name: "Wellness" },
+    { id: "farm", name: "Farm" },
+    { id: "luxor", name: "Luxor" },
     { id: "evenings", name: "Evenings" }
   ],
 
@@ -60,33 +61,38 @@ window.HOUSE_BOOK = {
       label: "Lunch and dinner", meta: "12:00 to 22:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
       times: ["12:30", "13:30", "19:00", "19:30", "20:00", "21:00"] },
+    { id: "il-forno", cat: "dining", name: "Il Forno", img: null,
+      text: "Neapolitan-style pizzas from the wood-fired oven, with vegetables from the farm. Pizza is also brought to the pool.",
+      label: "Lunch and dinner", meta: "12:00 to 21:00, April to November; 12:00 to 16:00, December to March",
+      action: "reserve", dept: "restaurants", pricing: { type: "none" },
+      times: ["12:30", "13:30", "18:30", "19:30", "20:00"] },
     { id: "pool-pavilion", cat: "dining", name: "The Pool Pavilion", img: "w_pool_pergola.jpg",
       text: "A Mediterranean lunch by the water.",
       label: "Lunch", meta: "12:00 to 17:00",
       action: "reserve", dept: "restaurants", pricing: { type: "none" },
       times: ["12:30", "13:00", "13:30", "14:00", "15:00"] },
 
-    // Spa
-    { id: "signature-massage", cat: "spa", name: "Signature massage", img: "w_massage.jpg",
+    // Wellness
+    { id: "signature-massage", cat: "wellness", name: "Signature massage", img: "w_massage.jpg",
       text: "The spa's own massage, by therapists from Kerala.",
       label: "110 USD", meta: "60 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 110 },
       times: ["10:00", "12:00", "15:00", "17:00", "18:30"] },
-    { id: "nile-package", cat: "spa", name: "The Nile Package", img: "w_marble.jpg",
+    { id: "nile-package", cat: "wellness", name: "The Nile Package", img: "w_marble.jpg",
       text: "Head massage, body scrub, hammam and foot massage.",
       label: "165 USD", meta: "120 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 165 },
       times: ["10:00", "14:00", "16:30"] },
-    { id: "nervous-system", cat: "spa", name: "Nervous system regulation", img: "w_calm_room.jpg",
+    { id: "nervous-system", cat: "wellness", name: "Nervous system regulation", img: "w_calm_room.jpg",
       text: "Massage, sound and craniosacral, for calm and sleep.",
       label: "210 USD", meta: "90 minutes",
       action: "reserve", dept: "spa", pricing: { type: "perGuest", amount: 210 },
       times: ["11:00", "16:00", "18:00"] },
-    { id: "yoga", cat: "spa", name: "Yoga in the garden", img: "w_garden.jpg",
+    { id: "yoga", cat: "wellness", name: "Yoga in the garden", img: "w_garden.jpg",
       text: "Daily, in the garden.",
       label: "With our compliments", meta: "15:00",
       action: "join", dept: "spa", pricing: { type: "free" } },
-    { id: "primal-moves", cat: "spa", name: "Primal Moves", img: "w_pool_garden.jpg",
+    { id: "primal-moves", cat: "wellness", name: "Primal Moves", img: "w_pool_garden.jpg",
       text: "Movement by the pool, Monday to Friday.",
       label: "With our compliments", meta: "17:00",
       action: "join", dept: "spa", pricing: { type: "free" } },
@@ -196,6 +202,32 @@ window.HOUSE_BOOK = {
       { id: "pd-louxor-loft", name: "Dinner in the Louxor Loft" }
     ]
     // each venue may add: line: "One line", capacity: 12
+  },
+
+  /* Documents, each kept in the app as page images (to read) and a light PDF (to keep).
+   * A document appears only where it is placed and only once its file is here.
+   *   pages: number of page images in files/<id>/p01.jpg ...
+   *   ratio: page width / height, so the viewer can reserve space before it loads */
+  documents: {
+    "the-farm": { name: "The Farm", line: "Our booklet, to read before or after the walk", pages: 12, ratio: 1400 / 1120, cover: "files/the-farm/p01.jpg" },
+    "guest-directory": { name: "The Guest Directory", line: "The guide to the house", pages: 21, ratio: 1100 / 1557, cover: "files/guest-directory/p01.jpg" }
+    // From Randa, when they arrive: restaurant menus, private dining, the spa menu,
+    // excursions, Aswan, the private temple experience, the stables, the Nile boats, the dahabiyas, events.
+  },
+  // Where each document appears. Add an id here once its file is in place.
+  placements: {
+    farmTop: "the-farm",            // at the top of Farm
+    house: "guest-directory",       // under Al Moudira, the guide to the house
+    privateDining: null,            // the private dining brochure
+    menus: {},                      // restaurant id -> menu document id, e.g. { mfk: "menu-farm-kitchen" }
+    sections: { wellness: [], luxor: [], evenings: [] } // e.g. wellness: ["spa-menu"], luxor: ["excursions", "aswan", "temple", "stables"]
+  },
+
+  // The map of the farm and the hotel, from the Farm booklet, with its numbered key
+  map: {
+    img: "farm_map.jpg", ratio: 1368 / 1402,
+    key: ["Reception", "The tailor", "Bookbinding", "The pottery", "The paper studio", "Weaving and kilim", "Upholstery", "Antiques",
+          "The animals", "The artisans' row", "The dovecotes", "The poultry", "Khayamiya", "The Stable", "Moudira Farm Kitchen"]
   },
 
   priceNote: "Prices in US dollars, charged to your room. Restaurant prices are plus service and taxes.",
