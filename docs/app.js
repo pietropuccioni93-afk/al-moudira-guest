@@ -569,6 +569,8 @@
     try {
       const r = await API.sendRequest(req, S.session);
       S.justSent = r.id;
+      if (req.kind === "dining") S.cart = {};                 // the basket empties once the order is sent
+      if (req.kind === "arrival") U.store.set("arrivalSent", true);
       S.requests = await API.listRequests();
       closeSheet();
       return r;
