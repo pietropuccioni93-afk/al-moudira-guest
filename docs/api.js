@@ -153,7 +153,7 @@
         const dept = C.departments[req.dept] || C.departments.frontoffice;
         const lines = ["[" + dept.tag + "] " + req.title, header(session)];
         if (req.summary) lines.push(req.summary);
-        if (req.total) lines.push("Total " + req.total);
+        if (req.total) lines.push(/^(\d|from )/i.test(req.total) ? "Total " + req.total : req.total);
         if (req.note) lines.push("Note: " + req.note);
         open(lines.join("\n"));
         const r = Object.assign({ id: uid(), status: "sent", at: Date.now(), via: "WhatsApp" }, req);
