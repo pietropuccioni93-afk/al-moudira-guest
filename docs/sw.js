@@ -1,6 +1,6 @@
 /* Keeps the app quick on the hotel wifi and readable with no signal.
  * Pages and photos come from the cache; /api calls always go to the network. */
-const VERSION = "am-v2";
+const VERSION = "am-v3";
 const CORE = ["./", "index.html", "styles.css", "config.js", "content.js", "api.js", "app.js", "img/logo.png", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
