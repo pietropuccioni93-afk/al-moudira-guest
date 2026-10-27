@@ -235,3 +235,22 @@ h1.big { transform-origin: left bottom; transition: opacity .15s linear; }
 .mapview { margin-top: 18px; overflow: auto; border-radius: 12px; background: var(--sand); -webkit-overflow-scrolling: touch; }
 .mapview svg, .mapview img { display: block; width: 100%; height: auto; }
 .mapview.zoom svg, .mapview.zoom img { width: 220%; }
+
+/* Large text and narrow phones: nothing runs off the screen */
+.orow { flex-wrap: wrap; }
+.otext { flex: 1 1 150px; }
+.orow .pill { margin-left: auto; }
+.row { flex-wrap: wrap; }
+.row .grow { flex: 1 1 150px; }
+.row .val { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.homenote { flex-wrap: wrap; }
+.homenote div { flex: 1 1 180px; }
+.homenote svg, .homenote span { max-width: 100%; }
+.otext { flex-basis: 110px; }
+@media (max-width: 330px) {
+  .iw.othumb { display: none; }
+  .tabbar a { font-size: 11px; letter-spacing: -0.2px; }
+  .screen { padding-left: 18px; padding-right: 18px; }
+  .chips:not(.wrap) { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px; }
+  .tabbar a span { text-align: center; line-height: 1.1; }
+}
