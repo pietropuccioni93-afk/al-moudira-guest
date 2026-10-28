@@ -59,7 +59,7 @@
     if (t === s.departure) return "last";
     return "during";
   }
-  function greeting() { const h = houseHour(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+  function greeting() { const h = houseHour(); return h >= 5 && h < 12 ? "Good morning" : h >= 12 && h < 18 ? "Good afternoon" : "Good evening"; }
   function toast(msg) {
     const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
     document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
