@@ -1,19 +1,15 @@
-/*
- * The data layer. The screens only talk to window.API, so moving from WhatsApp
- * (stage 1) to Cloudbeds (stage 2) changes this file's adapter,
- * not the screens.
- */
+// Data layer. Views only use window.API; swap the adapter for stage 2 (Cloudbeds).
 (function () {
   const C = window.APP_CONFIG;
 
-  /* ---------- small shared helpers ---------- */
+  // storage + dates
   const store = {
     get(k, d) { try { const v = localStorage.getItem("am_" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem("am_" + k, JSON.stringify(v)); } catch (e) { /* private mode */ } },
     del(k) { try { localStorage.removeItem("am_" + k); } catch (e) { } }
   };
 
-  // Today's date at the house, as YYYY-MM-DD
+  // YYYY-MM-DD in Cairo
   function houseDate(offsetDays) {
     const d = new Date(Date.now() + (offsetDays || 0) * 86400000);
     return new Intl.DateTimeFormat("en-CA", { timeZone: C.timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
@@ -27,19 +23,16 @@
 
   window.U = { store, houseDate, addDays, uid };
 
-  /* ---------- listeners (status changes, new messages) ---------- */
+  // change listeners
   const listeners = new Set();
   function emit() { listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } }); }
 
-  /* =========================================================
-   * STAGE 1: WhatsApp to reception. No guest data is stored
-   * anywhere but the guest's own phone.
-   * ========================================================= */
+  // stage 1: whatsapp handoff, nothing stored server side
   function whatsappAdapter() {
     function open(text) {
       const url = "https://wa.me/" + C.whatsappNumber + "?text=" + encodeURIComponent(text);
       const w = window.open(url, "_blank", "noopener");
-      if (!w) location.href = url; // pop-up blocked: open WhatsApp in this tab
+      if (!w) location.href = url; // popup blocked
     }
     function header(s) { return [s.guest.first + " " + s.guest.last, s.room ? "Room " + s.room : null].filter(Boolean).join(" · "); }
     return {
@@ -47,7 +40,7 @@
       async restore() {
         const s = store.get("session", null);
         if (!s) return null;
-        // a phone forgets the guest three weeks after sign in, so the next guest starts fresh
+        // expire after 21 days
         if (!s.at || Date.now() - s.at > 21 * 86400000) { store.del("session"); store.del("requests"); return null; }
         return Object.assign({ bookings: [], bill: null, guests: 2 }, s);
       },
@@ -77,10 +70,7 @@
     };
   }
 
-  /* =========================================================
-   * STAGE 2: live, through /api (functions/api), which talks to
-   * Cloudbeds with the hotel's key. The key never reaches the phone.
-   * ========================================================= */
+  // stage 2: /api -> Cloudbeds (key stays server side)
   function liveAdapter() {
     async function call(path, opts) {
       const res = await fetch(C.apiBase + path, Object.assign({ credentials: "include", headers: { "Content-Type": "application/json" } }, opts || {}));
@@ -92,7 +82,7 @@
     let poll = null;
     function startPolling() {
       if (poll) return;
-      poll = setInterval(emit, 20000); // refresh statuses and messages every 20 s
+      poll = setInterval(emit, 20000);
     }
     return {
       mode: "live",

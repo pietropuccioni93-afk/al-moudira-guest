@@ -1,31 +1,23 @@
-/*
- * Al Moudira guest web app: settings.
- *
- * mode
- *   (the demo with a sample guest is kept in the history: commit 37c3d61)
- *   "whatsapp"  Stage 1. No guest data is stored. Guests type their name and room;
- *               every request opens WhatsApp to reception, tagged for the department.
- *   "live"      Stage 2. Sign in and stay data come from Cloudbeds through /api
- *               (see functions/api). Requests are recorded on the booking.
- */
+// Settings
+// mode: "whatsapp" (stage 1, requests go to reception on WhatsApp)
+//       "live"     (stage 2, Cloudbeds via /api, see functions/)
 window.APP_CONFIG = {
   mode: "whatsapp",
 
-  // Reception WhatsApp, international format without + or spaces (+20 122 3251 307)
+  // reception, no + or spaces
   whatsappNumber: "201223251307",
 
-  // The house
   timeZone: "Africa/Cairo",
-  latitude: 25.7268,   // Al Moudira, Luxor West Bank (approximate)
+  latitude: 25.7268,   // approx
   longitude: 32.6044,
   currency: "USD",
 
   apiBase: "/api",
 
-  // Live temperature from Open-Meteo (free, no key). Set to false to hide it.
+  // Open-Meteo, no key needed
   showTemperature: true,
 
-  // Tab names. Change here only; the rest of the app follows.
+  // tab labels
   tabs: {
     today: "Today",
     discover: "Discover",
@@ -34,10 +26,7 @@ window.APP_CONFIG = {
     house: "Al Moudira"
   },
 
-  /*
-   * Who confirms what. Each request is tagged with one of these departments.
-   * To align with Thomas's "Who Confirms What" before launch.
-   */
+  // departments + WhatsApp tags (check against Who Confirms What)
   departments: {
     frontoffice: { name: "Front office", tag: "FRONT OFFICE" },
     concierge:   { name: "Concierge", tag: "CONCIERGE" },

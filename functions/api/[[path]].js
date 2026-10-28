@@ -1,10 +1,7 @@
 /*
- * Al Moudira guest web app: server side (Cloudflare Pages Functions).
- * Stage 2 ("live" mode). Holds the Cloudbeds key; the phone never sees it.
- *
- * STATUS: scaffold. Written against the Cloudbeds API reference (v1.3,
- * developers.cloudbeds.com), NOT yet run against the hotel's account.
- * Every place marked VERIFY must be checked with a real response first.
+ * Stage 2 backend (Cloudflare Pages Functions). Not deployed yet.
+ * Written against the Cloudbeds API docs (v1.3), untested against the real
+ * account, so check everything marked VERIFY.
  *
  * Environment (Cloudflare dashboard > Pages project > Settings):
  *   CLOUDBEDS_API_KEY   secret, property-level key (Cloudbeds > Apps & Marketplace > API Credentials)
@@ -26,7 +23,7 @@
 const CB = "https://api.cloudbeds.com/api/v1.3";
 const enc = new TextEncoder();
 
-/* ---------- signing (personal links and session cookie) ---------- */
+// HMAC signing for links + session cookie
 async function hmac(secret, data) {
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
@@ -45,7 +42,7 @@ async function verify(env, token) {
   return p;
 }
 
-/* ---------- Cloudbeds ---------- */
+// Cloudbeds
 async function cloudbeds(env, method, path, params) {
   const url = new URL(CB + "/" + path);
   const init = { method, headers: { "x-api-key": env.CLOUDBEDS_API_KEY } };
@@ -58,7 +55,7 @@ async function cloudbeds(env, method, path, params) {
   return json;
 }
 
-// Booking number + surname. getReservations filters on the primary guest's lastName.
+// lookup by booking number + surname (getReservations filters on lastName)
 async function findReservation(env, booking, surname) {
   const id = String(booking || "").replace(/\s/g, "");
   const today = new Date().toISOString().slice(0, 10);
@@ -68,7 +65,7 @@ async function findReservation(env, booking, surname) {
   const hit = (r.data || []).find((x) => [x.reservationID, x.sourceReservationID, x.thirdPartyIdentifier].filter(Boolean)
     .some((v) => String(v).replace(/\s/g, "").toUpperCase() === id.toUpperCase()));
   if (!hit) return null;
-  if (!["confirmed", "checked_in"].includes(hit.status)) return null; // only an active booking
+  if (!["confirmed", "checked_in"].includes(hit.status)) return null;
   return hit.reservationID;
 }
 
@@ -88,7 +85,7 @@ function mapStay(d) {
   };
 }
 
-/* ---------- helpers ---------- */
+// helpers
 const json = (body, status, headers) => new Response(JSON.stringify(body), { status: status || 200, headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, headers || {}) });
 function cookie(req, name) { const m = (req.headers.get("Cookie") || "").match(new RegExp("(?:^|; )" + name + "=([^;]+)")); return m ? m[1] : null; }
 async function session(env, req) { return verify(env, cookie(req, "am_s")); }
@@ -100,11 +97,11 @@ const clean = (s, n) => String(s || "").replace(/[\u0000-\u001f]/g, " ").slice(0
 
 async function listKV(env, key) { return JSON.parse((await env.REQUESTS.get(key)) || "[]"); }
 async function putKV(env, key, list, expMs) {
-  // keep 30 days after departure, then the store forgets it
+  // TTL: 30 days after departure
   await env.REQUESTS.put(key, JSON.stringify(list), { expiration: Math.floor((expMs + 30 * 86400000) / 1000) });
 }
 
-/* ---------- routes ---------- */
+// routes
 export async function onRequest({ request: req, env, params }) {
   const path = "/" + [].concat(params.path || []).join("/");
   const m = req.method;
@@ -117,7 +114,7 @@ export async function onRequest({ request: req, env, params }) {
       if (!rid) return json({ error: "We could not find that booking. Please check the number and the surname, or dial 0." }, 404);
       const d = (await cloudbeds(env, "GET", "getReservation", { reservationID: rid })).data;
       const stay = mapStay(d);
-      const exp = Date.parse(stay.departure + "T23:59:59+02:00"); // open until the end of departure day
+      const exp = Date.parse(stay.departure + "T23:59:59+02:00"); // end of departure day
       const tok = await sign(env, { rid, exp });
       return json({ ok: true }, 200, { "Set-Cookie": sessionCookie(tok, exp) });
     }
@@ -166,7 +163,7 @@ export async function onRequest({ request: req, env, params }) {
           summary: clean(b.summary, 500), total: clean(b.total, 80), note: clean(b.note, 1000)
         };
         const list = await listKV(env, key); list.unshift(r); await putKV(env, key, list, s.exp);
-        // On the booking in Cloudbeds, so the front office sees it where they already work
+        // write it on the reservation in Cloudbeds
         await cloudbeds(env, "POST", "postReservationNote", {
           reservationID: s.rid,
           reservationNote: `[APP][${r.dept.toUpperCase()}] ${r.title}. ${r.summary}${r.total ? ". " + r.total : ""}${r.note ? ". Note: " + r.note : ""} (ref ${r.id})`

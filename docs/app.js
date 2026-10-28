@@ -1,4 +1,4 @@
-/* Al Moudira guest web app. Screens and navigation. */
+// Al Moudira guest app: views + router
 (function () {
   const C = window.APP_CONFIG;
   const HB = window.HOUSE_BOOK;
@@ -6,19 +6,19 @@
   const U = window.U;
   const app = document.getElementById("app");
 
-  const S = {               // app state, in memory
+  const S = {               // in-memory state
     session: null,
     requests: [],
     messages: [],
-    cart: {},               // room service: id -> qty
+    cart: {},               // item id -> qty
     temp: null,
     arrival: { time: "", car: "sedan", allergies: "" },
     askDraft: "",
-    sheet: null,            // the open sheet's state
+    sheet: null,            // current bottom sheet
     lastTab: "today"
   };
 
-  /* ---------------- helpers ---------------- */
+  // helpers
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const money = (n) => (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " USD";
   const ymdDate = (ymd) => new Date(ymd + "T12:00:00Z");
@@ -30,10 +30,10 @@
   const exp = (id) => HB.experiences.find((e) => e.id === id);
   const dept = (id) => C.departments[id] || C.departments.frontoffice;
   const chev = '<svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5l5 5-5 5" fill="none" stroke="#b5b5b5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const LOADED = new Set(); // photos already shown once: no second fade on re-render
+  const LOADED = new Set(); // skip the fade-in on re-render
   window.__imgIn = (el) => { LOADED.add(el.getAttribute("src")); el.classList.add("ld"); };
   const img = (f, alt, cls) => {
-    if (!f) return ""; // no photograph: the card shows as text
+    if (!f) return ""; // text-only card
     const src = "img/" + esc(f), done = LOADED.has(src);
     return `<span class="iw${cls ? " " + cls : ""}"><img src="${src}" alt="${esc(alt || "")}" loading="lazy" decoding="async"${done ? ' class="ld" style="transition:none"' : ""} onload="__imgIn(this)" onerror="__imgIn(this)"></span>`;
   };
@@ -65,7 +65,7 @@
     document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
   }
 
-  /* Sunrise and sunset (NOAA sunrise equation), shown in the house's time zone */
+  // sunrise/sunset, NOAA equation, Cairo time
   function sunTimes(ymd) {
     const rad = Math.PI / 180, lat = C.latitude, lon = C.longitude;
     const [y, m, d] = ymd.split("-").map(Number);
@@ -82,7 +82,7 @@
     const toDate = (j) => new Date((j - 2440587.5) * 86400000);
     return { rise: toDate(Jt - w / 360), set: toDate(Jt + w / 360) };
   }
-  window.__sunTimes = sunTimes; // for testing
+  window.__sunTimes = sunTimes; // debug
 
   async function loadTemp() {
     if (!C.showTemperature || S.temp) return;
@@ -92,11 +92,10 @@
       const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.latitude}&longitude=${C.longitude}&current=temperature_2m`);
       const j = await r.json();
       if (j && j.current && typeof j.current.temperature_2m === "number") { S.temp = Math.round(j.current.temperature_2m) + "°"; U.store.set("temp", { v: S.temp, at: Date.now() }); render(true); }
-    } catch (e) { /* offline or blocked: hide it */ }
+    } catch (e) { /* offline, just hide it */ }
   }
 
-  /* ---------------- icons ---------------- */
-  // Matilda's tab bar icons: [resting, selected]
+  // tab icons: [outline, filled]
   const ICON = {
     today: ['<circle cx="12" cy="12" r="4" fill="none"/><path d="M18.80 12.00L20.80 12.00" fill="none"/><path d="M16.81 16.81L18.22 18.22" fill="none"/><path d="M12.00 18.80L12.00 20.80" fill="none"/><path d="M7.19 16.81L5.78 18.22" fill="none"/><path d="M5.20 12.00L3.20 12.00" fill="none"/><path d="M7.19 7.19L5.78 5.78" fill="none"/><path d="M12.00 5.20L12.00 3.20" fill="none"/><path d="M16.81 7.19L18.22 5.78" fill="none"/>', '<circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M18.80 12.00L20.80 12.00" fill="none"/><path d="M16.81 16.81L18.22 18.22" fill="none"/><path d="M12.00 18.80L12.00 20.80" fill="none"/><path d="M7.19 16.81L5.78 18.22" fill="none"/><path d="M5.20 12.00L3.20 12.00" fill="none"/><path d="M7.19 7.19L5.78 5.78" fill="none"/><path d="M12.00 5.20L12.00 3.20" fill="none"/><path d="M16.81 7.19L18.22 5.78" fill="none"/>'],
     discover: ['<path d="M12 3.5C12.7 8.8 15.2 11.3 20.5 12C15.2 12.7 12.7 15.2 12 20.5C11.3 15.2 8.8 12.7 3.5 12C8.8 11.3 11.3 8.8 12 3.5z" fill="none"/>', '<path d="M12 3.5C12.7 8.8 15.2 11.3 20.5 12C15.2 12.7 12.7 15.2 12 20.5C11.3 15.2 8.8 12.7 3.5 12C8.8 11.3 11.3 8.8 12 3.5z" fill="currentColor"/>'],
@@ -110,7 +109,7 @@
       `<a href="${href}"${k === active ? ' aria-current="page"' : ""}><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k][k === active ? 1 : 0]}</svg><span>${esc(C.tabs[k])}</span></a>`).join("")}</nav>`;
   }
 
-  /* ---------------- requests shown on the day ---------------- */
+  // requests for a given day
   function dayItems(ymd) {
     const s = S.session;
     const booked = (s.bookings || []).filter((b) => b.date === ymd).map((b) => ({ time: b.time, name: b.name, sub: b.sub, expId: b.expId }));
@@ -131,9 +130,7 @@
     return r.status === "confirmed" ? "Confirmed" : r.status === "declined" ? "Not possible, we will write" : "Awaiting confirmation";
   }
 
-  /* =========================================================
-   * SCREENS
-   * ========================================================= */
+  // ---- views
   const V = {};
 
   V.signin = () => {
@@ -175,7 +172,7 @@
       <p class="lede">Your page closed when you left. We hope to welcome you back.</p>
       <a class="btn" style="margin-top:24px;max-width:320px" href="mailto:${esc(HB.house.email)}?subject=${encodeURIComponent("A return to Al Moudira")}">Plan your return</a></div>`;
 
-  /* ---------- Today ---------- */
+  // today
   V.today = () => {
     const s = S.session, p = phase(s);
     if (p === "ended") return V.ended();
@@ -184,7 +181,7 @@
     const t = U.houseDate(0), tm = U.addDays(t, 1);
     const sun = sunTimes(t);
     const SG = HB.suggestions, now = nowHM();
-    // never suggest what the guest has already booked during the stay
+    // skip anything already booked
     const bookedToday = new Set((s.bookings || []).map((b) => b.expId).concat(S.requests.filter((r) => r.kind === "reserve").map((r) => r.expId)).filter(Boolean));
     const sug = (now < SG.until ? SG.beforeSunset : SG.evening).find((x) => !bookedToday.has(x.id)) || null;
     const se = sug && exp(sug.id);
@@ -213,7 +210,7 @@
     </div>`;
   };
 
-  /* Add to the home screen: first visit only, closable */
+  // add-to-home-screen hint (first visit)
   function homeNote() {
     if (!S.showHomeNote || standalone) return "";
     if (!isIOS && !isAndroid) return "";
@@ -261,9 +258,9 @@
     </div>`;
   };
 
-  /* ---------- Discover ---------- */
+  // discover
   function offerRow(e) {
-    const label = e.label; // the price, or one short word; hours and duration are in the panel
+    const label = e.label;
     return `<div class="orow${e.img ? "" : " text"}">${e.img ? img(e.img, "", "othumb") : ""}
       <button class="otext" data-act="reserve" data-id="${e.id}"><span class="oname">${esc(e.name)}</span><span class="oprice">${esc(label)}</span></button>
       <button class="pill soft" data-act="reserve" data-id="${e.id}" aria-label="${verb(e)}: ${esc(e.name)}">${verb(e)}</button>
@@ -303,7 +300,7 @@
     </div>`;
   };
 
-  /* ---------- Request received ---------- */
+  // request sent
   V.request = (r) => {
     const q = S.requests.find((x) => x.id === r.arg);
     if (!q) return `<div class="screen"><h1>Request</h1><p class="lede">We could not find this request.</p></div>`;
@@ -336,7 +333,7 @@
         : `<p class="lede">Nothing yet. Everything you reserve or ask for appears here, with its status.</p>`}
     </div>`;
 
-  /* ---------- Bill ---------- */
+  // bill (live mode only)
   V.bill = () => {
     const b = S.session.bill;
     if (!b) return `<div class="screen"><h1>Your bill</h1><p class="lede">Ask at reception, or dial 0.</p></div>`;
@@ -351,7 +348,7 @@
     </div>`;
   };
 
-  /* ---------- Room ---------- */
+  // room
   const RS = () => HB.roomService.restaurants.filter((x) => x.items && x.items.length);
   const priceText = (i) => i.label || (i.price % 1 ? i.price.toFixed(2) : String(i.price));
   V.room = (r) => {
@@ -385,7 +382,7 @@
     </div>`;
   };
 
-  /* ---------- Ask ---------- */
+  // ask
   V.ask = () => {
     const wa = API.mode === "whatsapp";
     const msgs = S.messages;
@@ -403,7 +400,7 @@
       </div></div>`;
   };
 
-  /* ---------- Al Moudira ---------- */
+  // house info
 
   V.house = () => `<div class="screen">
       <h1 style="margin-top:10px">${esc(C.tabs.house)}</h1>
@@ -439,7 +436,7 @@
   function mapKey() {
     return `<ol class="mapkey" aria-label="Key to the map">${HB.map.key.map((k, i) => `<li><span class="num">${i + 1}</span>${esc(k)}</li>`).join("")}</ol>`;
   }
-  /* The map, full screen: two fingers to zoom, one to move, double tap to zoom in or out */
+  // fullscreen map: pinch / pan / double tap
   V.map = () => `<div class="mapfull" role="dialog" aria-label="Map of the farm and the hotel">
       <div class="mapbar"><a class="close-text" href="#/house">Close</a><button class="close-text" data-act="map-key">${S.mapKeyOpen ? "Hide the key" : "Show the key"}</button></div>
       <div class="mapstage" id="mapstage"><img id="mapimg" src="img/${esc(HB.map.img)}" alt="Map of the farm and the hotel" draggable="false"></div>
@@ -479,7 +476,7 @@
     if (im.complete) apply(); else im.onload = apply;
   }
 
-  /* A document, kept in the app: its pages to read here, and a light PDF to keep */
+  // document viewer (page images + pdf download)
   V.doc = (r) => {
     const d = DOC(r.arg);
     if (!d) return `<div class="screen">${backTo(S.docBack || "#/house")}<h1>Not found</h1></div>`;
@@ -491,9 +488,7 @@
       <p class="note" style="text-align:center">Pinch to zoom in on a page.</p></div>`;
   };
 
-  /* =========================================================
-   * SHEETS
-   * ========================================================= */
+  // ---- sheets
   const nowHM = () => fmtClock(new Date());
   function timesFor(e, date) {
     if (!e.times) return null;
@@ -508,7 +503,7 @@
     for (let d = start; d <= end && out.length < 7; d = U.addDays(d, 1)) out.push(d);
     return out.length ? out : [t];
   }
-  // any amount shown before booking carries the tax line (Pietro, 27 Oct)
+  // tax note under any price
   function taxLine(price) { return /\d/.test(price || "") ? `<p class="small taxnote">${esc(HB.taxNote)}</p>` : ""; }
   function priceFor(e, guests) {
     const p = e.pricing || { type: "none" };
@@ -542,7 +537,7 @@
     const e = exp(st.id), days = stayDays(e);
     const ask = e.action === "ask", join = e.action === "join";
     const times = timesFor(e, st.date);
-    if (times && (!st.time || !times.includes(st.time))) st.time = times[0] || null; // first sensible time
+    if (times && (!st.time || !times.includes(st.time))) st.time = times[0] || null;
     const gl = e.guestsLabel || "Guests";
     return `<h2 style="padding-right:80px">${esc(e.name)}</h2><p class="small" style="margin:8px 0 0;color:var(--body)">${esc(e.text)}</p><p class="small" style="margin:4px 0 0">${esc(e.sheetLine || [e.label, e.meta].filter(Boolean).join(" · "))}</p>
       ${ask ? "" : `<div class="lbl">Day</div><div class="chips wrap">${days.map((d) => `<button class="chip" aria-pressed="${st.date === d}" data-act="s-date" data-v="${d}">${esc(dayLabel(d))}</button>`).join("")}</div>
@@ -554,14 +549,14 @@
       <button class="btn" data-act="s-send" style="margin-top:20px"${!ask && e.times && !st.time ? " disabled" : ""}>${verb(e)}</button>
       ${!ask && e.times && !st.time ? `<p class="small" style="text-align:center;font-size:15px;margin:8px 0 0">No times left today: choose another day</p>` : ""}`;
   }
-  /* Before WhatsApp opens: say what will happen, and the way without it */
+  // shown before handing off to whatsapp
   function sheetHandoff(st) {
     return `<h2 style="padding-right:80px">${esc(st.title)}</h2>
       <p class="lede" style="margin-top:10px">WhatsApp will open with your request written. Press Send, and we will confirm.</p>
       <button class="btn" data-act="handoff-go" style="margin-top:22px">Open WhatsApp</button>
       <p class="small" style="text-align:center;margin:14px 0 0">No WhatsApp? Dial 0.</p>`;
   }
-  /* Room service: when */
+  // room service time picker
   function slots() {
     const now = new Date(), out = [];
     const t = new Date(now.getTime() + 45 * 60000);
@@ -598,7 +593,7 @@
     try {
       const r = await API.sendRequest(req, S.session);
       S.justSent = r.id;
-      if (req.kind === "dining") S.cart = {};                 // the basket empties once the order is sent
+      if (req.kind === "dining") S.cart = {};
       if (req.kind === "arrival") U.store.set("arrivalSent", true);
       S.requests = await API.listRequests();
       closeSheet();
@@ -606,9 +601,7 @@
     } catch (e) { toast(e.message || "Could not send. Please dial 0."); return null; }
   }
 
-  /* =========================================================
-   * EVENTS
-   * ========================================================= */
+  // ---- events
   document.addEventListener("click", async (ev) => {
     const el = ev.target.closest("[data-act]");
     if (!el) return;
@@ -737,9 +730,7 @@
 
   function scrollEnd() { window.scrollTo({ top: document.body.scrollHeight }); }
 
-  /* =========================================================
-   * ROUTER
-   * ========================================================= */
+  // ---- router
   function route() {
     const h = (location.hash || "#/today").slice(2).split("/");
     const r = { name: h[0] || "today", arg: h[1] || null, sub: h[2] || null };
@@ -756,11 +747,11 @@
     if (!S.session && !PUBLIC.includes(r.name)) { if (location.hash !== "#/signin") { location.replace("#/signin"); return; } }
     if (S.session && r.name === "signin") { location.replace("#/today"); return; }
     const view = V[r.name] || V.today;
-    // keep the focused field and caret through a re-render
+    // restore focus + caret after render
     const a = document.activeElement, bind = a && a.dataset && a.dataset.bind, pos = bind && a.selectionStart;
     const tab = r.name === "request" || r.name === "doc" ? S.lastTab : TAB_OF[r.name];
     if (tab && r.name !== "request" && r.name !== "doc") S.lastTab = tab;
-    if (r.name !== "doc" && r.name !== "map") S.docBack = location.hash || "#/today"; // Back returns where the guest came from
+    if (r.name !== "doc" && r.name !== "map") S.docBack = location.hash || "#/today";
     const html = view(r);
     const ended = S.session && phase(S.session) === "ended";
     app.innerHTML = html + (S.session && tab && !ended ? tabbar(tab) : "");
@@ -768,7 +759,7 @@
     const key = r.name + "/" + r.arg + "/" + r.sub;
     if (!keepScroll && key !== lastRoute) window.scrollTo(0, 0);
     if (r.name === "ask" && key !== lastRoute) setTimeout(scrollEnd, 0);
-    // opening screen fades into Today
+    // splash -> today
     if (lastRoute.startsWith("splash") && r.name !== "splash") {
       app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
       setTimeout(() => app.classList.remove("enter"), 600);
@@ -779,7 +770,7 @@
     document.title = (r.name === "today" ? "" : (C.tabs[tab] || "") + " · ") + "Al Moudira";
   }
 
-  /* Large title shrinks into a slim bar when the guest scrolls */
+  // collapsing title on scroll
   const NO_BAR = ["splash", "signin", "request", "map"];
   let barTitle = null;
   function setupTopbar(name) {
@@ -822,7 +813,7 @@
     } else {
       S.session = await API.restore();
     }
-    if (U.store.get("homeNote", null) == null) { S.showHomeNote = true; U.store.set("homeNote", "seen"); } // first visit only
+    if (U.store.get("homeNote", null) == null) { S.showHomeNote = true; U.store.set("homeNote", "seen"); }
     await refresh();
     render();
     loadTemp();

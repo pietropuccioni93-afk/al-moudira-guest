@@ -1,29 +1,9 @@
-/*
- * The House Book: every text, price and photograph the app shows.
- * One source to keep current. Texts and prices come from Matilda's screens
- * (from the House Book, October 2026). Prices in US dollars.
- *
- * Experience fields
- *   id        unique, short, no spaces
- *   cat       dining | wellness | farm | luxor | evenings
- *   doc       optional: a document (see `documents`) shown as "See the menu" on this row
- *   name, text  title and one line
- *   img       photograph in /img, or null (then it shows as a text card)
- *   label     first line under the text (bold)
- *   meta      second line under the text
- *   action    reserve  a table, a treatment or a place at a set time
- *             join     free, at a set time
- *             arrange  the house organises it for you (guides, cars, celebrations)
- *             ask      on request: tell us what you have in mind
- *   dept      department that confirms (see config.js)
- *   pricing   { type: "none" }                    no price shown in the sheet
- *             { type: "flat", amount, cap }        one price for up to `cap` guests
- *             { type: "perGuest", amount }         amount times guests
- *             { type: "from", amount }             "from" price, confirmed by the house
- *             { type: "free" }                     with our compliments
- *   times     optional list of times offered in the sheet
- *   terms     optional line under the total
- */
+// All guest-facing content (texts, prices in USD, photos). Source: House Book, Oct 2026.
+//
+// experience: id, cat (dining|wellness|farm|luxor|evenings), name, text, img (or null),
+//   label, meta, action (reserve|join|arrange|ask), dept (see config.js),
+//   pricing: none | flat {amount, cap} | perGuest {amount} | from {amount} | free,
+//   times?, terms?, doc? (id from `documents`)
 window.HOUSE_BOOK = {
   house: {
     name: "Al Moudira",
@@ -112,7 +92,7 @@ window.HOUSE_BOOK = {
       action: "reserve", dept: "farm", pricing: { type: "flat", amount: 150, cap: 4 },
       times: ["08:00", "10:00", "16:00"] },
     { id: "stable-rides", cat: "farm", name: "Stable rides", img: null,
-      text: "Horses from the house stable, for a ride through the farm.",   // TO CONFIRM: House Book line, duration, price
+      text: "Horses from the house stable, for a ride through the farm.",   // TODO: line, duration, price
       label: "On request", meta: "Tell us when you would like to ride",
       action: "ask", dept: "farm", pricing: { type: "none" } },
     { id: "little-explorers", cat: "farm", name: "Little Explorers", img: "w_farm_ostrich.jpg",
@@ -155,7 +135,7 @@ window.HOUSE_BOOK = {
       action: "arrange", dept: "transport", pricing: { type: "from", amount: 200 },
       times: ["09:00", "15:00"] },
     { id: "cycling-tour", cat: "luxor", name: "The cycling tour", img: null,
-      text: "By mountain bike to the Valley of the Kings.",               // TO CONFIRM: House Book line, duration, price
+      text: "By mountain bike to the Valley of the Kings.",               // TODO: line, duration, price
       label: "On request", meta: "Tell us your day",
       action: "ask", dept: "concierge", pricing: { type: "none" } },
 
@@ -179,7 +159,7 @@ window.HOUSE_BOOK = {
       action: "arrange", dept: "concierge", pricing: { type: "flat", amount: 90, cap: 3 } }
   ],
 
-  // Private dining: about 20 places in all; the House Book names these 17. Lines and capacities to come from Thomas.
+  // private dining venues (TODO: lines + capacities from Thomas)
   privateDining: {
     intro: "A table anywhere at the house, for two or for fifty. Venue from 150 USD.",
     venues: [
@@ -201,29 +181,25 @@ window.HOUSE_BOOK = {
       { id: "pd-owners-loft", name: "Dinner in the Owners' Loft" },
       { id: "pd-louxor-loft", name: "Dinner in the Louxor Loft" }
     ]
-    // each venue may add: line: "One line", capacity: 12
+    // optional per venue: line, capacity
   },
 
-  /* Documents, each kept in the app as page images (to read) and a light PDF (to keep).
-   * A document appears only where it is placed and only once its file is here.
-   *   pages: number of page images in files/<id>/p01.jpg ...
-   *   ratio: page width / height, so the viewer can reserve space before it loads */
+  // documents: files/<id>/p01.jpg... + files/<id>.pdf; ratio = page w/h
   documents: {
     "the-farm": { name: "The Farm", line: "Our booklet, to read before or after the walk", pages: 12, ratio: 1400 / 1120, cover: "files/the-farm/p01.jpg" },
     "guest-directory": { name: "The Guest Directory", line: "The guide to the house", pages: 21, ratio: 1100 / 1557, cover: "files/guest-directory/p01.jpg" }
-    // From Randa, when they arrive: restaurant menus, private dining, the spa menu,
-    // excursions, Aswan, the private temple experience, the stables, the Nile boats, the dahabiyas, events.
+    // TODO: menus, spa, excursions etc. from Randa
   },
-  // Where each document appears. Add an id here once its file is in place.
+  // where documents show up
   placements: {
-    farmTop: "the-farm",            // at the top of Farm
-    house: "guest-directory",       // under Al Moudira, the guide to the house
-    privateDining: null,            // the private dining brochure
-    menus: {},                      // restaurant id -> menu document id, e.g. { mfk: "menu-farm-kitchen" }
-    sections: { wellness: [], luxor: [], evenings: [] } // e.g. wellness: ["spa-menu"], luxor: ["excursions", "aswan", "temple", "stables"]
+    farmTop: "the-farm",
+    house: "guest-directory",
+    privateDining: null,
+    menus: {},                      // restaurant id -> doc id
+    sections: { wellness: [], luxor: [], evenings: [] }
   },
 
-  // The map of the farm and the hotel, from the Farm booklet, with its numbered key
+  // farm map + key (from the Farm booklet)
   map: {
     img: "farm_map.jpg", ratio: 1584 / 1605,
     key: ["Reception", "The tailor", "Bookbinding", "The pottery", "The paper studio", "Weaving and kilim", "Upholstery", "Antiques",
@@ -233,16 +209,14 @@ window.HOUSE_BOOK = {
   priceNote: "Prices in US dollars, excluding service and taxes, charged to your room.",
   taxNote: "Excluding service and taxes.",
 
-  // Shown on Today, in this order. `weekdays` uses 0 = Sunday ... 6 = Saturday.
+  // daily programme; weekdays 0 = Sun
   daily: [
     { time: "09:30", name: "The farm walk", sub: "From reception" },
     { time: "15:00", name: "Yoga in the garden", sub: "Join as you are" },
     { time: "17:00", name: "Primal Moves", sub: "By the pool, Monday to Friday", weekdays: [1, 2, 3, 4, 5] }
   ],
 
-  // One suggestion on Today, chosen by the time of day at the house:
-  // before the felucca leaves, the felucca; after that, dinner.
-  // Never suggests something the guest has already booked today: the next one in the list is used.
+  // Today suggestion: before `until` -> beforeSunset, after -> evening (skips booked ones)
   suggestions: {
     until: "16:45",
     beforeSunset: [
@@ -275,8 +249,7 @@ window.HOUSE_BOOK = {
     airportCar: { name: "A car to the airport", sub: "We suggest leaving 3 hours before an international flight", price: 50 }
   },
 
-  // Room service: the guest chooses a restaurant, then its menu, then when.
-  // Only restaurants with a menu here are shown. Thomas to confirm which restaurants deliver.
+  // room service menus (TODO: Thomas to confirm which restaurants deliver)
   roomService: {
     note: "US dollars, excluding service and taxes. Tell us of any allergy and the kitchen will confirm.",
     restaurants: [
@@ -332,13 +305,13 @@ window.HOUSE_BOOK = {
   ],
   addressesNote: "In urgent need, at any hour, dial 0. A doctor can come to your room outside clinic hours.",
 
-  team: [],   // To be decided: which team members may be named (Florian)
+  team: [],   // hidden until Florian confirms names
   teamNote: "Al Moudira is run by a team from the villages around it. You will meet them by name here soon.",
 
   photos: ["w_facade.jpg", "w_pool_pergola.jpg", "w_dining_room.jpg", "w_library.jpg", "w_suite.jpg",
            "w_arch_court.jpg", "w_garden_table.jpg", "w_felucca.jpg", "w_harvest.jpg"],
 
-  // Al Moudira's press, as listed on egyptbeyond.com/press. Links where we have the article.
+  // press (egyptbeyond.com/press)
   press: [
     { name: "Financial Times, How To Spend It", url: "https://www.moudira.com/_files/ugd/2ad5ec_b3c9f0b125714c8b9f180529d7f9e5dd.pdf" },
     { name: "The Telegraph", url: "https://www.telegraph.co.uk/travel/destinations/africa/egypt/hotels/al-moudira-hotel/" },
@@ -354,5 +327,5 @@ window.HOUSE_BOOK = {
     { name: "SBLS" }
   ],
   distinctions: "Relais & Châteaux, two MICHELIN Keys",
-  brochures: []  // PDFs to come
+  brochures: []
 };
