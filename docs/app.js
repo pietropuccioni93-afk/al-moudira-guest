@@ -87,7 +87,7 @@
   async function loadTemp() {
     if (!C.showTemperature || S.temp) return;
     const cached = U.store.get("temp", null);
-    if (cached && Date.now() - cached.at < 3600000) { S.temp = cached.v; return; }
+    if (cached && Date.now() - cached.at < 3600000) { S.temp = cached.v; render(true); return; }
     try {
       const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${C.latitude}&longitude=${C.longitude}&current=temperature_2m`);
       const j = await r.json();
