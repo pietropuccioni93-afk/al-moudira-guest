@@ -283,7 +283,7 @@ window.HOUSE_BOOK = {
   // the automated assistant on Ask (bot.js)
   bot: {
     who: "Assistant · automated",
-    note: "Automatic answers from the House Book. The front office replies on WhatsApp at any hour, always a person.",
+    note: "Automatic answers from the hotel's own information. The front office replies on WhatsApp at any hour, always a person.",
     intro: "Hello {name}. I'm the Al Moudira assistant, an automated helper, not a person. Tap a topic, or type a question. For anything else, a person at the front office replies on WhatsApp.",
     fallback: "I'm not sure about that one, and I'd rather not guess. The front office can help: a person replies on WhatsApp, at any hour."
   },

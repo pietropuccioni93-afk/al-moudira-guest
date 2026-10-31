@@ -129,10 +129,10 @@
   add("today", "What's on today", [["what can we do", 3], ["what can i do", 3], ["what to do", 3], ["things to do", 3], ["activities", 2.5], ["activity", 2.5], ["programme", 3], ["program", 3], ["schedule", 2], ["today", 1], ["recommend", 2.5], ["suggest", 2.5], ["bored", 2]], () => {
     const wd = weekdayAtHouse();
     const today = H.daily.filter((d) => !d.weekdays || d.weekdays.includes(wd));
-    return { text: "Today at the house:\n" + list(today.map((d) => d.time + "  " + d.name + " (" + d.sub.toLowerCase() + ")")) + "\n\nBefore sunset, " + exps["felucca"].name.toLowerCase() + " leaves at " + exps["felucca"].times[0] + ". For more, see Discover.", actions: [{ label: "Discover", href: "#/discover/all" }] };
+    return { text: "Today at Al Moudira:\n" + list(today.map((d) => d.time + "  " + d.name + " (" + d.sub.toLowerCase() + ")")) + "\n\nBefore sunset, " + exps["felucca"].name.toLowerCase() + " leaves at " + exps["felucca"].times[0] + ". For more, see Discover.", actions: [{ label: "Discover", href: "#/discover/all" }] };
   });
   add("evening", "This evening", [["evening", 2]], () => ({ text: "For this evening:\n" + list(H.experiences.filter((e) => e.cat === "evenings").map((e) => e.name + ": " + e.label)) + "\n\nDinner is " + practical["Dinner"] + ".", actions: [{ label: "See Evenings", href: "#/discover/evenings" }] }));
-  add("excursions", "Excursions in Luxor", [["excursion", 2.5], ["temples", 2.5], ["valley of the kings", 3], ["sightseeing", 2.5], ["guide", 2], ["luxor", 1.5]], () => ({ text: "From the house, with your guide:\n" + list(H.experiences.filter((e) => e.cat === "luxor").map((e) => e.name + ": " + e.label + (e.meta ? ", " + e.meta : ""))) + "\n\n" + H.taxNote, actions: [{ label: "See Luxor", href: "#/discover/luxor" }] }));
+  add("excursions", "Excursions in Luxor", [["excursion", 2.5], ["temples", 2.5], ["valley of the kings", 3], ["sightseeing", 2.5], ["guide", 2], ["luxor", 1.5]], () => ({ text: "From Al Moudira, with your guide:\n" + list(H.experiences.filter((e) => e.cat === "luxor").map((e) => e.name + ": " + e.label + (e.meta ? ", " + e.meta : ""))) + "\n\n" + H.taxNote, actions: [{ label: "See Luxor", href: "#/discover/luxor" }] }));
   add("children", "For children", [["children", 3], ["family", 1.5]], () => expAnswer(exps["little-explorers"]));
   add("airport", "Cars and the airport", [["airport", 3], ["car", 2]], () => {
     const A = H.lastDay.airportCar;
@@ -157,14 +157,14 @@
   add("wifi", "The wifi", [["wifi", 3]], () => ({ text: "The wifi network is " + practical["Wifi"].replace(", no password", "") + ", with no password." }));
   add("reception", "Reception", [["reception", 2.5], ["front desk", 2.5], ["concierge", 2], ["phone", 1.5], ["call", 1], ["dial", 1.5]], () => ({ text: "Reception is open " + practical["Reception"] + ". From outside, reception is on WhatsApp at " + H.house.whatsappDisplay + "." }));
   add("weather", "The weather today", [["weather", 3], ["temperature", 3], ["hot", 2], ["cold", 2], ["warm", 2], ["rain", 3], ["forecast", 3], ["sunny", 2], ["wind", 2], ["sunrise", 2.5], ["sunset", 2.5], ["degrees", 2.5], ["jacket", 2], ["meteo", 3], ["wetter", 3]], (w, ctx) => {
-    const now = [ctx.temp ? "It is " + ctx.temp + " at the house right now." : "", ctx.rise ? "Sunrise is at " + ctx.rise + " and sunset at " + ctx.set + "." : ""].filter(Boolean).join(" ");
+    const now = [ctx.temp ? "It is " + ctx.temp + " at Al Moudira right now." : "", ctx.rise ? "Sunrise is at " + ctx.rise + " and sunset at " + ctx.set + "." : ""].filter(Boolean).join(" ");
     const ahead = ["rain", "forecast", "tomorrow", "week", "later"].some((x) => w.includes(x));
     return { text: (now || "I don't have the weather just now.") + (ahead ? " I only have the weather right now, not a forecast. The front office can tell you more." : ""), wa: ahead };
   });
   add("change", "Change or cancel a booking", [["change", 3.5]], () => ({ text: "To change or cancel something you have booked, message the front office and they will sort it out.", wa: true }));
-  add("map", "The farm map", [["map", 3], ["directions", 2]], () => ({ text: "The farm map shows the house, the workshops and the animals, with a numbered key.", actions: [{ label: "Open the map", href: "#/house/map" }] }));
+  add("map", "The farm map", [["map", 3], ["directions", 2]], () => ({ text: "The farm map shows the hotel, the workshops and the animals, with a numbered key.", actions: [{ label: "Open the map", href: "#/house/map" }] }));
   add("contact", "Address and contact", [["address", 3], ["email", 2.5], ["contact", 2]], () => ({ text: H.house.address + "\nEmail: " + H.house.email + "\nWhatsApp: " + H.house.whatsappDisplay }));
-  add("directory", "The Guest Directory", [["guide book", 2], ["directory", 3], ["information", 1.5], ["brochure", 2]], () => ({ text: "The Guest Directory has everything about the house.", actions: [{ label: "Open the Guest Directory", href: "#/doc/guest-directory" }] }));
+  add("directory", "The Guest Directory", [["guide book", 2], ["directory", 3], ["information", 1.5], ["brochure", 2]], () => ({ text: "The Guest Directory has everything about Al Moudira.", actions: [{ label: "Open the Guest Directory", href: "#/doc/guest-directory" }] }));
 
   // every experience, by its own name
   const EXTRA = { felucca: [["felucca", 3], ["nile", 1.5], ["watch the sunset", 2.5], ["see the sunset", 2.5]], balloon: [["balloon", 3], ["sunrise", 1.5]], "west-bank": [["valley of the kings", 2], ["hatshepsut", 3], ["west bank", 2.5]], karnak: [["karnak", 2], ["luxor temple", 3], ["east bank", 2.5]], "karnak-night": [["sound and light", 3], ["show", 1.5]], "il-forno": [["pizza", 3], ["forno", 3]], "dining-room": [["courtyard", 3], ["ottoman", 3]], khan: [["khan", 3]], "pool-pavilion": [["pavilion", 3]], mfk: [["kitchen", 1.5]], "stable-rides": [["horses", 3]], "cycling-tour": [["cycling", 3]], carriage: [["carriage", 3]], celebration: [["celebration", 3], ["cake", 2.5]], "set-nefru": [["dahabiya", 3], ["cruise", 2.5]], yoga: [["yoga", 3]], pottery: [["pottery", 3]], tailoring: [["tailor", 3], ["suit", 2], ["shirt", 2]], "nile-sunset": [["picnic", 2.5], ["private sunset", 3], ["watch the sunset", 2.5], ["see the sunset", 2.5]], "classic-car": [["classic car", 3], ["village", 2]], "farm-tour": [["farm", 1.5], ["farm tour", 3], ["animals", 2], ["workshop", 2]], "signature-massage": [["signature", 2]], "little-explorers": [["children", 1]] };
@@ -185,7 +185,7 @@
   const IDENTITY = ["are you a bot", "speak to someone", "talk to someone", "speak to a", "talk to a", "speak with", "manager", "are you human", "are you real", "a person", "a robot", "an ai", "real person", "human", "bot", "robot"];
   const SMALL = [
     [["thank", "thanks", "thank you", "grazie", "merci", "danke", "gracias", "shukran", "cheers"], "You're welcome. Enjoy your stay."],
-    [["hello", "hey", "hi", "hiya", "good morning", "good afternoon", "good evening", "ciao", "bonjour", "hallo", "hola", "salam"], "Hello. Tap a topic below, or ask me about the house, for example breakfast times or what is on today."],
+    [["hello", "hey", "hi", "hiya", "good morning", "good afternoon", "good evening", "ciao", "bonjour", "hallo", "hola", "salam"], "Hello. Tap a topic below, or ask me anything about Al Moudira, for example breakfast times or what is on today."],
   ];
   const has = (raw, keys) => keys.some((k) => raw.includes(" " + norm(k).trim() + " "));
   const opt = (t) => ({ id: t.id, label: t.label });
@@ -229,7 +229,7 @@
     if (!VOCAB) { VOCAB = new Set(); T.forEach((t) => t.keys.forEach(([k]) => prep(k).forEach((x) => VOCAB.add(x)))); H.map.key.forEach((k) => prep(k).forEach((x) => VOCAB.add(x))); }
     const all = fix(prep(q)), words = all.filter((w) => !STOP.has(w));
     const none = { type: "none", text: H.bot.fallback, wa: true };
-    if (has(raw, IDENTITY)) return { type: "answer", id: "bot", text: "I'm an automated assistant, not a person. I answer from the House Book. For a person, tap Message the front office: someone replies on WhatsApp, at any hour.", wa: true };
+    if (has(raw, IDENTITY)) return { type: "answer", id: "bot", text: "I'm an automated assistant, not a person. I answer from the hotel's own information. For a person, tap Message the front office: someone replies on WhatsApp, at any hour.", wa: true };
     // things the House Book doesn't cover: say so rather than answer something nearby
     if (/ (dress code|what to wear|dog|dogs|pet|pets|smoking|smoke|lost|stolen|left my|forgot my|forgotten|hairdresser|barber|kids menu|children s menu|child menu) /.test(raw)) return none;
     // a message that is only a greeting or a thank you
