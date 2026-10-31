@@ -1,5 +1,5 @@
 // Offline cache. /api is never cached.
-const VERSION = "am-v4";
+const VERSION = "am-v5";
 const CORE = ["./", "index.html", "styles.css", "config.js", "content.js", "api.js", "bot.js", "app.js", "img/logo.png", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
@@ -11,13 +11,13 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
-  // network first for app files, cache first for images/pdfs
+  // app files: always ask the server first (no-cache = revalidate, so a push shows at once); images/pdfs: cache first
   if (url.pathname.includes("/img/") || url.pathname.includes("/files/")) {
     e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
       const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); return res;
     })));
   } else {
-    e.respondWith(fetch(e.request).then((res) => {
+    e.respondWith(fetch(e.request.url, { cache: "no-cache", credentials: "same-origin" }).then((res) => {
       const copy = res.clone(); caches.open(VERSION).then((c) => c.put(e.request, copy)); return res;
     }).catch(() => caches.match(e.request).then((hit) => hit || caches.match("index.html"))));
   }
