@@ -280,6 +280,14 @@ window.HOUSE_BOOK = {
   ],
 
   askChips: ["A table tonight", "A car", "Late check out", "The spa"],
+  // the automated assistant on Ask (bot.js)
+  bot: {
+    who: "Assistant · automated",
+    note: "Automatic answers from the House Book. The front office replies on WhatsApp at any hour, always a person.",
+    intro: "Hello {name}. I'm the Al Moudira assistant, an automated helper, not a person. I can answer questions about the house, like opening hours, prices or what is on today. To book, or for anything else, tap Message the front office and a person will reply on WhatsApp.",
+    chips: ["Breakfast times", "The wifi", "What's on today", "The spa", "Late check out", "A doctor"],
+    fallback: "I'm not sure about that one, and I'd rather not guess. The front office can help: a person replies on WhatsApp, at any hour."
+  },
 
   practical: [
     ["Reception", "24 hours · dial 0"],

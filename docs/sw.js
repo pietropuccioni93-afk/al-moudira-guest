@@ -1,6 +1,6 @@
 // Offline cache. /api is never cached.
-const VERSION = "am-v3";
-const CORE = ["./", "index.html", "styles.css", "config.js", "content.js", "api.js", "app.js", "img/logo.png", "manifest.webmanifest"];
+const VERSION = "am-v4";
+const CORE = ["./", "index.html", "styles.css", "config.js", "content.js", "api.js", "bot.js", "app.js", "img/logo.png", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

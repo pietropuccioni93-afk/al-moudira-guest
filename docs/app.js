@@ -14,6 +14,8 @@
     temp: null,
     arrival: { time: "", car: "sedan", allergies: "" },
     askDraft: "",
+    bot: [],                // assistant chat (whatsapp mode), memory only
+    botTyping: false,
     sheet: null,            // current bottom sheet
     lastTab: "today"
   };
@@ -383,8 +385,30 @@
   };
 
   // ask
+  // assistant bubble: text, then buttons (always ending with the way to a person)
+  function botBubble(m, i) {
+    const acts = (m.actions || []).map((a) => a.href ? `<a class="pill" href="${esc(a.href)}">${esc(a.label)}</a>`
+      : a.tel ? `<a class="pill" href="tel:${esc(a.tel)}">${esc(a.label)}</a>`
+      : `<button class="pill" data-act="${esc(a.act)}" ${a.id ? `data-id="${esc(a.id)}"` : ""} ${a.kind ? `data-kind="${esc(a.kind)}"` : ""}>${esc(a.label)}</button>`).join("");
+    const wa = m.q ? `<button class="pill${m.wa ? " go" : ""}" data-act="bot-wa" data-i="${i}">Message the front office</button>` : "";
+    return `<div class="bubble them bot"><span class="who">${esc(HB.bot.who)}</span>${esc(m.text)}${acts || wa ? `<div class="bactions">${acts}${wa}</div>` : ""}</div>`;
+  }
   V.ask = () => {
     const wa = API.mode === "whatsapp";
+    if (wa) return `<div class="screen" style="padding-bottom:calc(var(--tabbar) + var(--safe-b) + 8px)">
+      <h1 style="margin-top:10px">${esc(C.tabs.ask)}</h1>
+      <p class="small" style="margin-top:8px">${esc(HB.bot.note)}</p>
+      <div class="thread" aria-live="polite">
+        ${botBubble({ text: HB.bot.intro.replace("{name}", S.session.guest.first) }, -1)}
+        ${S.bot.map((m, i) => m.from === "guest" ? `<div class="bubble me">${esc(m.text)}</div>` : botBubble(m, i)).join("")}
+        ${S.botTyping ? `<div class="bubble them bot typing" aria-label="The assistant is answering"><span></span><span></span><span></span></div>` : ""}
+      </div>
+      <div class="composer">
+        <div class="chips" style="margin-top:0">${HB.bot.chips.map((c) => `<button class="chip" data-act="bot-chip" data-text="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+        <form data-form="ask"><label class="sr" for="msg">Ask the assistant</label><input id="msg" class="input" data-bind="askDraft" value="${esc(S.askDraft)}" placeholder="Ask a question" autocomplete="off" enterkeyhint="send">
+        <button class="send-text">Send</button></form>
+        <button class="front-link" data-act="front">Message the front office instead</button>
+      </div></div>`;
     const msgs = S.messages;
     return `<div class="screen" style="padding-bottom:calc(var(--tabbar) + var(--safe-b) + 8px)">
       <h1 style="margin-top:10px">${esc(C.tabs.ask)}</h1>
@@ -576,6 +600,7 @@
     late: () => ({ title: HB.lastDay.lateCheckOut.name, line: HB.lastDay.lateCheckOut.sub, price: money(HB.lastDay.lateCheckOut.price) + ", to your room", dept: "frontoffice", cta: "Request late check out", date: S.session.departure }),
     airport: () => ({ title: HB.lastDay.airportCar.name, line: HB.lastDay.airportCar.sub, price: money(HB.lastDay.airportCar.price) + ", to your room", dept: "transport", cta: "Reserve the car", date: S.session.departure, field: "Your flight, and the time" }),
     bill: () => ({ title: "Bring my bill to breakfast", line: "We will bring your bill to your table, to settle at leisure.", dept: "frontoffice", cta: "Yes, please", date: S.session.departure }),
+    front: () => ({ title: "Message the front office", line: "A person replies on WhatsApp, at any hour.", dept: "frontoffice", cta: "Continue", field: "Your message", required: true, date: U.houseDate(0) }),
     word: () => ({ title: "Leave us a word", line: "Read by the team, and by the owner.", dept: "frontoffice", cta: "Send", field: "Your word on your stay", required: true }),
     other: () => ({ title: "Something else", line: "Tell us what needs attention, and we will come.", dept: "maintenance", cta: "Send", field: "What needs attention", required: true, date: U.houseDate(0) }),
     "hk-other": () => ({ title: "Other request", line: "Anything else for your room.", dept: "housekeeping", cta: "Send", field: "What would you like?", required: true, date: U.houseDate(0) })
@@ -659,6 +684,7 @@
       case "map-key": S.mapKeyOpen = !S.mapKeyOpen; render(true); break;
       case "simple": openSheet(Object.assign({ type: "simple", kind: el.dataset.kind, note: "" }, SIMPLE[el.dataset.kind]())); break;
       case "s-simple": {
+        if (st.kind === "front") { openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text: (st.note || "").trim() } }); break; }
         const r = await send({ kind: st.kind, title: st.title, dept: st.dept, date: st.date || null, summary: st.line, total: st.price || "", note: (st.note || "").trim() });
         if (r) location.hash = "#/request/" + r.id;
         break;
@@ -688,6 +714,9 @@
           total: (items.some((i) => i.label) ? "from " : "") + money(total) + ", to your room" });
         break;
       }
+      case "bot-chip": askBot(el.dataset.text); break;
+      case "bot-wa": { const m = S.bot[+el.dataset.i]; if (m && m.q) openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text: m.q } }); break; }
+      case "front": { const text = (S.askDraft || "").trim(); if (text) { S.askDraft = ""; openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text } }); } else openSheet(Object.assign({ type: "simple", kind: "front", note: "" }, SIMPLE.front())); break; }
       case "chip": S.askDraft = el.dataset.text + ": "; render(true); const m = document.getElementById("msg"); if (m) { m.focus(); m.setSelectionRange(m.value.length, m.value.length); } break;
       case "car": S.arrival.car = id; render(true); break;
       case "send-arrival": {
@@ -719,7 +748,7 @@
       if (f === "ask") {
         const text = (S.askDraft || "").trim(); if (!text) return;
         S.askDraft = "";
-        if (API.mode === "whatsapp") { openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text } }); return; }
+        if (API.mode === "whatsapp") { askBot(text); return; }
         await API.sendMessage(text, S.session);
         S.messages = await API.listMessages();
         render(true); scrollEnd();
@@ -729,6 +758,17 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.sheet) closeSheet(); });
 
   function scrollEnd() { window.scrollTo({ top: document.body.scrollHeight }); }
+
+  // the assistant answers on the phone (bot.js); a short pause so it reads like a reply
+  function askBot(text) {
+    text = String(text || "").trim().slice(0, 500); if (!text) return;
+    S.bot.push({ from: "guest", text }); S.botTyping = true; render(true); scrollEnd();
+    setTimeout(() => {
+      const a = window.BOT.answer(text);
+      S.bot.push(Object.assign({ from: "bot", q: text }, a)); S.botTyping = false;
+      if (location.hash.startsWith("#/ask")) { render(true); scrollEnd(); }
+    }, 450);
+  }
 
   // ---- router
   function route() {
