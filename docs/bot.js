@@ -82,6 +82,8 @@
     return s;
   }
   const nameKeys = (name, w) => prep(name).filter((x) => !STOP.has(x) && x.length > 2).map((x) => [x, w]);
+  // two words of a name side by side ("farm kitchen", "pool pavilion") count much more than one
+  const pairKeys = (name) => { const t = prep(name).filter((x) => !STOP.has(x)); return t.slice(1).map((x, i) => [t[i] + " " + x, 3]); };
 
   // ---- helpers to write answers from the House Book
   const usd = (n) => n + " USD";
@@ -166,8 +168,8 @@
 
   // every experience, by its own name
   for (const e of H.experiences) {
-    const extra = { felucca: [["felucca", 3], ["nile", 1.5]], balloon: [["balloon", 3], ["sunrise", 1.5]], "west-bank": [["valley of the kings", 2], ["hatshepsut", 3], ["west bank", 2.5]], karnak: [["karnak", 2], ["luxor temple", 3], ["east bank", 2.5]], "karnak-night": [["sound and light", 3], ["show", 1.5]], "il-forno": [["pizza", 3]], "stable-rides": [["horses", 3]], "cycling-tour": [["cycling", 3]], carriage: [["carriage", 3]], celebration: [["celebration", 3], ["cake", 2.5]], "set-nefru": [["dahabiya", 3], ["cruise", 2.5]], yoga: [["yoga", 3]], pottery: [["pottery", 3]], tailoring: [["tailor", 3], ["suit", 2], ["shirt", 2]], "nile-sunset": [["picnic", 2.5], ["private sunset", 3]], "classic-car": [["classic car", 3], ["village", 2]], "farm-tour": [["farm", 1.5], ["farm tour", 3], ["animals", 2], ["workshop", 2]], "signature-massage": [["signature", 2]] }[e.id] || [];
-    add(nameKeys(e.name, 1.2).concat(extra), () => expAnswer(e));
+    const extra = { felucca: [["felucca", 3], ["nile", 1.5]], balloon: [["balloon", 3], ["sunrise", 1.5]], "west-bank": [["valley of the kings", 2], ["hatshepsut", 3], ["west bank", 2.5]], karnak: [["karnak", 2], ["luxor temple", 3], ["east bank", 2.5]], "karnak-night": [["sound and light", 3], ["show", 1.5]], "il-forno": [["pizza", 3], ["forno", 3]], "dining-room": [["courtyard", 3], ["ottoman", 3]], khan: [["khan", 3]], "pool-pavilion": [["pavilion", 3]], "stable-rides": [["horses", 3]], "cycling-tour": [["cycling", 3]], carriage: [["carriage", 3]], celebration: [["celebration", 3], ["cake", 2.5]], "set-nefru": [["dahabiya", 3], ["cruise", 2.5]], yoga: [["yoga", 3]], pottery: [["pottery", 3]], tailoring: [["tailor", 3], ["suit", 2], ["shirt", 2]], "nile-sunset": [["picnic", 2.5], ["private sunset", 3]], "classic-car": [["classic car", 3], ["village", 2]], "farm-tour": [["farm", 1.5], ["farm tour", 3], ["animals", 2], ["workshop", 2]], "signature-massage": [["signature", 2]] }[e.id] || [];
+    add(nameKeys(e.name, 1.2).concat(pairKeys(e.name), extra), () => expAnswer(e));
   }
 
   // small talk and honesty about being a bot
