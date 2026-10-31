@@ -28,7 +28,7 @@
     temple: "temples", tour: "excursion", tours: "excursion", trip: "excursion", sightseeing: "excursion", excursions: "excursion",
     pizza: "pizza", pizzas: "pizza", "hot air balloon": "balloon", "hot air": "balloon", ballon: "balloon", mongolfiera: "balloon",
     vegan: "diet", vegetarian: "diet", vegetarien: "diet", gluten: "diet", allergy: "diet", allergic: "diet", allergies: "diet", halal: "diet", kosher: "diet", lactose: "diet", nut: "diet", nuts: "diet", celiac: "diet", coeliac: "diet", intolerance: "diet",
-    cancel: "change", cancellation: "change", reschedule: "change", modify: "change", move: "change", postpone: "change",
+    cancel: "change", cancellation: "change", reschedule: "change", modify: "change", postpone: "change", "move my": "change", "move our": "change", "move the": "change",
     ac: "air conditioning", aircon: "air conditioning", "too hot": "air conditioning", "too cold": "air conditioning", "hot water": "water", heating: "air conditioning",
     privata: "private", privee: "private", privat: "private", privado: "private", chek: "check", cheque: "check",
     bulb: "lights", light: "lights", electricity: "power", shower: "water", toilet: "water", leak: "water",
@@ -103,104 +103,136 @@
   const list = (arr) => arr.map((x) => "· " + x).join("\n");
   const weekdayAtHouse = () => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(new Intl.DateTimeFormat("en-GB", { timeZone: C.timeZone, weekday: "short" }).format(new Date()));
 
-  // ---- what the assistant knows. keys: [phrase, weight]
-  const T = [];
-  const add = (keys, answer) => T.push({ keys, answer });
+  // ---- what the assistant knows. Each answer: id, short label (shown as a button), keys [phrase, weight], answer(words, ctx)
+  const T = [], BY = {};
+  const add = (id, label, keys, answer) => { const t = { id, label, keys, answer }; T.push(t); BY[id] = t; };
 
-  add([["breakfast", 3]], (w) => {
+  add("breakfast", "Breakfast times", [["breakfast", 3]], (w) => {
     const incl = ["included", "include", "free", "complimentary", "extra", "price", "pay"].some((x) => w.includes(x));
-    return { text: "Breakfast is " + practical["Breakfast"] + ", under the trees at " + exps["dining-room"].name + "." + (incl ? " Whether it is included depends on your booking: the front office can confirm." : ""), wa: incl, actions: [{ label: "See the restaurants", href: "#/discover/dining" }] };
+    return { text: "Breakfast is " + practical["Breakfast"] + ", under the trees at " + exps["dining-room"].name + "." + (incl ? " Whether it is included depends on your booking: the front office can confirm." : ""), wa: incl, actions: [{ label: "Reserve a table", act: "reserve", id: "dining-room" }] };
   });
-  add([["dinner", 2], ["eat", 1.5], ["lunch", 2], ["hungry", 1]], (w) => {
+  add("restaurants", "Our restaurants", [["dinner", 2], ["eat", 2], ["lunch", 2], ["hungry", 1]], (w) => {
     const din = H.experiences.filter((e) => e.cat === "dining");
     const lunchOnly = w.includes("lunch") && !w.includes("dinner");
     const pick = lunchOnly ? din.filter((e) => /lunch/i.test(e.label + e.meta)) : din;
     return { text: (lunchOnly ? "For lunch:\n" : "Our restaurants:\n") + list(pick.map((e) => e.name + ": " + e.meta)) + "\n\nIn room dining is " + practical["In room dining"] + ".", actions: [{ label: "Reserve a table", href: "#/discover/dining" }] };
   });
-  add([["wifi", 3]], () => ({ text: "The wifi network is " + practical["Wifi"].replace(", no password", "") + ", with no password." }));
-  add([["pool", 3]], () => ({ text: "The pool is open " + practical["The pool"] + ". " + exps["pool-pavilion"].name + " serves lunch by the water, " + exps["pool-pavilion"].meta + ".", actions: [{ label: "Reserve lunch", act: "reserve", id: "pool-pavilion" }] }));
-  add([["gym", 3]], () => ({ text: "The gym is open " + practical["The gym"] + "." }));
-  add([["reception", 2.5], ["front desk", 2.5], ["concierge", 2], ["phone", 1.5], ["call", 1], ["dial", 1.5]], () => ({ text: "Reception is open " + practical["Reception"] + ". From outside, reception is on WhatsApp at " + H.house.whatsappDisplay + "." }));
-  add([["spa", 3], ["massage", 2.5]], () => ({ text: "The spa is open " + practical["The spa"] + ".\n\n" + list(H.experiences.filter((e) => e.cat === "wellness" && e.action === "reserve").map((e) => e.name + ": " + e.meta + ", " + e.label)) + "\n\n" + H.taxNote, actions: [{ label: "See the spa", href: "#/discover/wellness" }] }));
-  add([["shuttle", 3], ["souq", 3], ["bus", 1.5]], () => ({ text: "The shuttle to the souq leaves at " + practical["Shuttle to the souq"] + "." }));
-  add([["check out", 3], ["late check out", 2], ["late", 1]], () => {
-    const L = H.lastDay.lateCheckOut;
-    return { text: "Check out is at " + H.house.checkOut + ". You can stay until " + L.time + " for " + usd(L.price) + " (" + L.sub.toLowerCase() + "). " + H.taxNote, actions: [{ label: "Request late check out", act: "simple", kind: "late" }] };
-  });
-  add([["check in", 3], ["early", 1]], () => ({ text: "Check in is from " + H.house.checkIn + ". If you arrive earlier, let the front office know and they will do what they can.", wa: true }));
-  add([["airport", 3], ["car", 2]], () => {
-    const A = H.lastDay.airportCar;
-    return { text: "A car to the airport is " + usd(A.price) + ". " + A.sub + ".\n\nCars to meet you:\n" + list(H.arrival.cars.filter((c) => c.price).map((c) => c.name + ": " + usd(c.price))) + "\n\n" + H.taxNote, actions: [{ label: "Reserve the airport car", act: "simple", kind: "airport" }] };
-  });
-  add([["doctor", 3], ["clinic", 3], ["hospital", 3], ["emergency", 4], ["police", 3], ["ambulance", 4], ["urgent", 3], ["help", 0.8]], () => ({
-    text: "If it is urgent, dial 0 for reception at any hour, or 123 for an ambulance.\n\n" + list(H.addresses.map((a) => a.name + ": " + a.value)),
-    actions: H.addresses.filter((a) => a.tel).slice(0, 2).map((a) => ({ label: "Call " + a.name.replace(/^The /, ""), tel: a.tel })).concat([{ label: "All numbers", href: "#/house/addresses" }]) }));
-  add([["towels", 3.5], ["pillow", 3], ["blanket", 3], ["laundry", 3], ["turndown", 3], ["housekeeping", 3], ["clean", 2], ["cleaning", 2], ["room", 0.5]], (w) => {
-    const hk = H.housekeeping.filter((h) => !h.note);
-    const hit = hk.find((h) => prep(h.name).some((x) => w.includes(x)) || (h.sub && prep(h.sub).some((x) => w.includes(x) && !STOP.has(x) && x.length > 3)));
-    return { text: (hit ? hit.name + (hit.sub ? ": " + hit.sub.toLowerCase() : "") + ". " : "") + "Housekeeping is one tap away in Room.", actions: [{ label: "Housekeeping", href: "#/room/care" }] };
-  });
-  add([["air conditioning", 3], ["power", 2.5], ["lights", 2.5], ["water", 2], ["broken", 2.5], ["not working", 3], ["repair", 3], ["fix", 2]], () => ({ text: "Sorry about that. Tell us in Room and someone will come.", actions: [{ label: "Report it", href: "#/room/care" }] }));
-  add([["room service", 3], ["in room dining", 3], ["menu", 1.5], ["order", 1.5], ["deliver", 1.5]], () => {
+  add("roomservice", "In room dining", [["room service", 3], ["in room dining", 3], ["menu", 1.5], ["order", 1.5], ["deliver", 1.5]], () => {
     const r = H.roomService.restaurants[0];
     return { text: r.name + ": " + r.line + " (" + practical["In room dining"] + ")\n\n" + list(r.items.map((i) => i.name + ": " + (i.label || i.price) + " USD")) + "\n\n" + H.taxNote, actions: [{ label: "Order", href: "#/room/dining/" + r.id }] };
   });
-  add([["private", 2.5], ["private dinner", 3], ["private dining", 3], ["event", 2], ["wedding", 2.5], ["group", 1.5], ["party", 2]], () => ({ text: H.privateDining.intro + "\n\nPlaces include " + H.privateDining.venues.slice(0, 5).map((v) => v.name).join(", ") + ", and more.", actions: [{ label: "Private dining", href: "#/discover/dining" }] }));
-  add([["what to do", 3], ["things to do", 3], ["activities", 2.5], ["activity", 2.5], ["programme", 3], ["program", 3], ["schedule", 2], ["today", 1], ["recommend", 2.5], ["suggest", 2.5], ["bored", 2]], () => {
+  add("diet", "Allergies and diets", [["diet", 4]], () => ({ text: "Tell us of any allergy or diet and the kitchen will confirm what they can prepare. The front office will pass it on.", wa: true }));
+  add("private", "Private dining", [["private", 2.5], ["private dinner", 3], ["private dining", 3], ["event", 2], ["wedding", 2.5], ["group", 1.5], ["party", 2]], () => ({ text: H.privateDining.intro + "\n\nPlaces include " + H.privateDining.venues.slice(0, 5).map((v) => v.name).join(", ") + ", and more.", actions: [{ label: "Private dining", href: "#/discover/dining" }] }));
+  add("spa", "The spa", [["spa", 3], ["massage", 2.5]], () => ({ text: "The spa is open " + practical["The spa"] + ".\n\n" + list(H.experiences.filter((e) => e.cat === "wellness" && e.action === "reserve").map((e) => e.name + ": " + e.meta + ", " + e.label)) + "\n\n" + H.taxNote, actions: [{ label: "See the spa", href: "#/discover/wellness" }] }));
+  add("pool", "The pool", [["pool", 3]], () => ({ text: "The pool is open " + practical["The pool"] + ". " + exps["pool-pavilion"].name + " serves lunch by the water, " + exps["pool-pavilion"].meta + ".", actions: [{ label: "Reserve lunch", act: "reserve", id: "pool-pavilion" }] }));
+  add("gym", "The gym", [["gym", 3]], () => ({ text: "The gym is open " + practical["The gym"] + "." }));
+  add("today", "What's on today", [["what to do", 3], ["things to do", 3], ["activities", 2.5], ["activity", 2.5], ["programme", 3], ["program", 3], ["schedule", 2], ["today", 1], ["recommend", 2.5], ["suggest", 2.5], ["bored", 2]], () => {
     const wd = weekdayAtHouse();
     const today = H.daily.filter((d) => !d.weekdays || d.weekdays.includes(wd));
     return { text: "Today at the house:\n" + list(today.map((d) => d.time + "  " + d.name + " (" + d.sub.toLowerCase() + ")")) + "\n\nBefore sunset, " + exps["felucca"].name.toLowerCase() + " leaves at " + exps["felucca"].times[0] + ". For more, see Discover.", actions: [{ label: "Discover", href: "#/discover/all" }] };
   });
-  add([["excursion", 2.5], ["temples", 2.5], ["valley of the kings", 3], ["sightseeing", 2.5], ["guide", 2], ["luxor", 1.5]], () => ({ text: "From the house, with your guide:\n" + list(H.experiences.filter((e) => e.cat === "luxor").map((e) => e.name + ": " + e.label + (e.meta ? ", " + e.meta : ""))) + "\n\n" + H.taxNote, actions: [{ label: "See Luxor", href: "#/discover/luxor" }] }));
-  add([["evening", 2]], () => ({ text: "For this evening:\n" + list(H.experiences.filter((e) => e.cat === "evenings").map((e) => e.name + ": " + e.label)) + "\n\nDinner is " + practical["Dinner"] + ".", actions: [{ label: "See Evenings", href: "#/discover/evenings" }] }));
-  add([["children", 3], ["family", 1.5]], () => expAnswer(exps["little-explorers"]));
-  add([["map", 3], ["where", 1], ["find", 0.8], ["directions", 2]], (w) => {
-    const i = H.map.key.findIndex((k) => nameKeys(k, 1).some(([x]) => w.includes(x)));
-    return { text: i >= 0 ? H.map.key[i] + " is number " + (i + 1) + " on the farm map." : "The farm map shows the house, the workshops and the animals, with a numbered key.", actions: [{ label: "Open the map", href: "#/house/map" }] };
+  add("evening", "This evening", [["evening", 2]], () => ({ text: "For this evening:\n" + list(H.experiences.filter((e) => e.cat === "evenings").map((e) => e.name + ": " + e.label)) + "\n\nDinner is " + practical["Dinner"] + ".", actions: [{ label: "See Evenings", href: "#/discover/evenings" }] }));
+  add("excursions", "Excursions in Luxor", [["excursion", 2.5], ["temples", 2.5], ["valley of the kings", 3], ["sightseeing", 2.5], ["guide", 2], ["luxor", 1.5]], () => ({ text: "From the house, with your guide:\n" + list(H.experiences.filter((e) => e.cat === "luxor").map((e) => e.name + ": " + e.label + (e.meta ? ", " + e.meta : ""))) + "\n\n" + H.taxNote, actions: [{ label: "See Luxor", href: "#/discover/luxor" }] }));
+  add("children", "For children", [["children", 3], ["family", 1.5]], () => expAnswer(exps["little-explorers"]));
+  add("airport", "Cars and the airport", [["airport", 3], ["car", 2]], () => {
+    const A = H.lastDay.airportCar;
+    return { text: "A car to the airport is " + usd(A.price) + ". " + A.sub + ".\n\nCars to meet you on arrival:\n" + list(H.arrival.cars.filter((c) => c.price).map((c) => c.name + ": " + usd(c.price))) + "\n\n" + H.taxNote, actions: [{ label: "Reserve the airport car", act: "simple", kind: "airport" }] };
   });
-  add([["address", 3], ["email", 2.5], ["contact", 2]], () => ({ text: H.house.address + "\nEmail: " + H.house.email + "\nWhatsApp: " + H.house.whatsappDisplay }));
-  add([["guide book", 2], ["directory", 3], ["information", 1.5], ["brochure", 2]], () => ({ text: "The Guest Directory has everything about the house.", actions: [{ label: "Open the Guest Directory", href: "#/doc/guest-directory" }] }));
-  add([["price", 0.3], ["book", 0.3], ["reserve", 0.3]], () => ({ text: "Tell me what you would like, for example the balloon, a massage or a table tonight. You can also browse Discover and reserve from there.", actions: [{ label: "Discover", href: "#/discover/all" }] }));
-
-  add([["safety", 4]], () => ({ text: "The front office knows Luxor well and can advise you. A person replies on WhatsApp, at any hour.", wa: true }));
-  add([["diet", 4]], () => ({ text: "Tell us of any allergy or diet and the kitchen will confirm what they can prepare. The front office will pass it on.", wa: true }));
-  add([["change", 3.5]], () => ({ text: "To change or cancel something you have booked, message the front office and they will sort it out.", wa: true }));
+  add("shuttle", "Shuttle to the souq", [["shuttle", 3], ["souq", 3], ["bus", 1.5]], () => ({ text: "The shuttle to the souq leaves at " + practical["Shuttle to the souq"] + "." }));
+  add("safety", "Advice on Luxor", [["safety", 4]], () => ({ text: "The front office knows Luxor well and can advise you. A person replies on WhatsApp, at any hour.", wa: true }));
+  add("housekeeping", "Housekeeping", [["towels", 3.5], ["pillow", 3], ["blanket", 3], ["laundry", 3], ["turndown", 3], ["housekeeping", 3], ["clean", 2], ["cleaning", 2], ["room", 0.5]], (w) => {
+    const hk = H.housekeeping.filter((h) => !h.note);
+    const hit = hk.find((h) => prep(h.name).some((x) => w.includes(x)) || (h.sub && prep(h.sub).some((x) => w.includes(x) && !STOP.has(x) && x.length > 3)));
+    return { text: (hit ? hit.name + (hit.sub ? ": " + hit.sub.toLowerCase() : "") + ". " : list(hk.map((h) => h.name + (h.sub ? ": " + h.sub.toLowerCase() : ""))) + "\n\n") + "Housekeeping is one tap away in Room.", actions: [{ label: "Housekeeping", href: "#/room/care" }] };
+  });
+  add("repairs", "Something not working", [["air conditioning", 3], ["power", 2.5], ["lights", 2.5], ["water", 2], ["broken", 2.5], ["not working", 3], ["repair", 3], ["fix", 2]], () => ({ text: "Sorry about that. Tell us in Room and someone will come.", actions: [{ label: "Report it", href: "#/room/care" }] }));
+  add("doctor", "Doctors and emergencies", [["doctor", 3], ["clinic", 3], ["hospital", 3], ["emergency", 4], ["police", 3], ["ambulance", 4], ["urgent", 3], ["help", 0.8]], () => ({
+    text: "If it is urgent, dial 0 for reception at any hour, or 123 for an ambulance.\n\n" + list(H.addresses.map((a) => a.name + ": " + a.value)),
+    actions: H.addresses.filter((a) => a.tel).slice(0, 2).map((a) => ({ label: "Call " + a.name.replace(/^The /, ""), tel: a.tel })).concat([{ label: "All numbers", href: "#/house/addresses" }]) }));
+  add("checkout", "Check out and late check out", [["check out", 3], ["late check out", 2], ["late", 1]], () => {
+    const L = H.lastDay.lateCheckOut;
+    return { text: "Check out is at " + H.house.checkOut + ". You can stay until " + L.time + " for " + usd(L.price) + " (" + L.sub.toLowerCase() + "). " + H.taxNote, actions: [{ label: "Request late check out", act: "simple", kind: "late" }] };
+  });
+  add("checkin", "Check in", [["check in", 3], ["early", 1]], () => ({ text: "Check in is from " + H.house.checkIn + ". If you arrive earlier, let the front office know and they will do what they can.", wa: true }));
+  add("wifi", "The wifi", [["wifi", 3]], () => ({ text: "The wifi network is " + practical["Wifi"].replace(", no password", "") + ", with no password." }));
+  add("reception", "Reception", [["reception", 2.5], ["front desk", 2.5], ["concierge", 2], ["phone", 1.5], ["call", 1], ["dial", 1.5]], () => ({ text: "Reception is open " + practical["Reception"] + ". From outside, reception is on WhatsApp at " + H.house.whatsappDisplay + "." }));
+  add("weather", "The weather today", [["weather", 3], ["temperature", 3], ["hot", 2], ["cold", 2], ["warm", 2], ["rain", 3], ["forecast", 3], ["sunny", 2], ["wind", 2], ["sunrise", 2.5], ["sunset", 2.5], ["degrees", 2.5], ["jacket", 2], ["meteo", 3], ["wetter", 3]], (w, ctx) => {
+    const now = [ctx.temp ? "It is " + ctx.temp + " at the house right now." : "", ctx.rise ? "Sunrise is at " + ctx.rise + " and sunset at " + ctx.set + "." : ""].filter(Boolean).join(" ");
+    const ahead = ["rain", "forecast", "tomorrow", "week", "later"].some((x) => w.includes(x));
+    return { text: (now || "I don't have the weather just now.") + (ahead ? " I only have the weather right now, not a forecast. The front office can tell you more." : ""), wa: ahead };
+  });
+  add("change", "Change or cancel a booking", [["change", 3.5]], () => ({ text: "To change or cancel something you have booked, message the front office and they will sort it out.", wa: true }));
+  add("map", "The farm map", [["map", 3], ["directions", 2]], () => ({ text: "The farm map shows the house, the workshops and the animals, with a numbered key.", actions: [{ label: "Open the map", href: "#/house/map" }] }));
+  add("contact", "Address and contact", [["address", 3], ["email", 2.5], ["contact", 2]], () => ({ text: H.house.address + "\nEmail: " + H.house.email + "\nWhatsApp: " + H.house.whatsappDisplay }));
+  add("directory", "The Guest Directory", [["guide book", 2], ["directory", 3], ["information", 1.5], ["brochure", 2]], () => ({ text: "The Guest Directory has everything about the house.", actions: [{ label: "Open the Guest Directory", href: "#/doc/guest-directory" }] }));
 
   // every experience, by its own name
-  for (const e of H.experiences) {
-    const extra = { felucca: [["felucca", 3], ["nile", 1.5]], balloon: [["balloon", 3], ["sunrise", 1.5]], "west-bank": [["valley of the kings", 2], ["hatshepsut", 3], ["west bank", 2.5]], karnak: [["karnak", 2], ["luxor temple", 3], ["east bank", 2.5]], "karnak-night": [["sound and light", 3], ["show", 1.5]], "il-forno": [["pizza", 3], ["forno", 3]], "dining-room": [["courtyard", 3], ["ottoman", 3]], khan: [["khan", 3]], "pool-pavilion": [["pavilion", 3]], "stable-rides": [["horses", 3]], "cycling-tour": [["cycling", 3]], carriage: [["carriage", 3]], celebration: [["celebration", 3], ["cake", 2.5]], "set-nefru": [["dahabiya", 3], ["cruise", 2.5]], yoga: [["yoga", 3]], pottery: [["pottery", 3]], tailoring: [["tailor", 3], ["suit", 2], ["shirt", 2]], "nile-sunset": [["picnic", 2.5], ["private sunset", 3]], "classic-car": [["classic car", 3], ["village", 2]], "farm-tour": [["farm", 1.5], ["farm tour", 3], ["animals", 2], ["workshop", 2]], "signature-massage": [["signature", 2]] }[e.id] || [];
-    add(nameKeys(e.name, 1.2).concat(pairKeys(e.name), extra), () => expAnswer(e));
-  }
+  const EXTRA = { felucca: [["felucca", 3], ["nile", 1.5], ["watch the sunset", 2.5], ["see the sunset", 2.5]], balloon: [["balloon", 3], ["sunrise", 1.5]], "west-bank": [["valley of the kings", 2], ["hatshepsut", 3], ["west bank", 2.5]], karnak: [["karnak", 2], ["luxor temple", 3], ["east bank", 2.5]], "karnak-night": [["sound and light", 3], ["show", 1.5]], "il-forno": [["pizza", 3], ["forno", 3]], "dining-room": [["courtyard", 3], ["ottoman", 3]], khan: [["khan", 3]], "pool-pavilion": [["pavilion", 3]], mfk: [["kitchen", 1.5]], "stable-rides": [["horses", 3]], "cycling-tour": [["cycling", 3]], carriage: [["carriage", 3]], celebration: [["celebration", 3], ["cake", 2.5]], "set-nefru": [["dahabiya", 3], ["cruise", 2.5]], yoga: [["yoga", 3]], pottery: [["pottery", 3]], tailoring: [["tailor", 3], ["suit", 2], ["shirt", 2]], "nile-sunset": [["picnic", 2.5], ["private sunset", 3], ["watch the sunset", 2.5], ["see the sunset", 2.5]], "classic-car": [["classic car", 3], ["village", 2]], "farm-tour": [["farm", 1.5], ["farm tour", 3], ["animals", 2], ["workshop", 2]], "signature-massage": [["signature", 2]], "little-explorers": [["children", 1]] };
+  for (const e of H.experiences) add("x:" + e.id, e.name, nameKeys(e.name, 1.2).concat(pairKeys(e.name), EXTRA[e.id] || []), () => expAnswer(e));
 
-  // small talk and honesty about being a bot
-  const SMALL = [
-    [["are you a bot", "speak to someone", "talk to someone", "speak to a", "talk to a", "speak with", "manager", "are you human", "are you real", "a person", "a robot", "an ai", "real person", "human", "bot", "robot"], () => ({ text: "I'm an automated assistant, not a person. I answer from the House Book. For a person, tap Message the front office: someone replies on WhatsApp, at any hour.", wa: true })],
-    [["thank", "thanks", "thank you", "grazie", "merci", "danke", "gracias", "shukran", "cheers"], () => ({ text: "You're welcome. Enjoy your stay." })],
-    [["hello", "hey", "good morning", "good afternoon", "good evening", "ciao", "bonjour", "hallo", "hola", "salam"], () => ({ text: "Hello. Ask me about the house, for example breakfast times, the wifi or what is on today." })],
+  // topics a guest can tap, each with its questions
+  const TOPICS = [
+    { id: "dining", label: "Dining", items: ["breakfast", "restaurants", "x:mfk", "x:khan", "x:il-forno", "x:pool-pavilion", "x:dining-room", "roomservice", "private", "diet"] },
+    { id: "spa", label: "Spa and wellness", items: ["spa", "x:signature-massage", "x:nile-package", "x:nervous-system", "x:yoga", "x:primal-moves", "pool", "gym"] },
+    { id: "todo", label: "Things to do", items: ["today", "evening", "x:balloon", "x:felucca", "x:nile-sunset", "x:west-bank", "x:karnak", "x:karnak-night", "x:farm-tour", "children", "x:celebration"] },
+    { id: "around", label: "Getting around", items: ["airport", "shuttle", "x:classic-car", "excursions", "safety"] },
+    { id: "room", label: "Your room", items: ["housekeeping", "roomservice", "repairs", "wifi", "checkout"] },
+    { id: "health", label: "Health and safety", items: ["doctor", "diet", "safety"] },
+    { id: "practical", label: "Practical", items: ["checkin", "checkout", "wifi", "reception", "weather", "change", "contact", "directory", "map"] },
   ];
 
-  function answer(q) {
+  // small talk and honesty about being a bot
+  const IDENTITY = ["are you a bot", "speak to someone", "talk to someone", "speak to a", "talk to a", "speak with", "manager", "are you human", "are you real", "a person", "a robot", "an ai", "real person", "human", "bot", "robot"];
+  const SMALL = [
+    [["thank", "thanks", "thank you", "grazie", "merci", "danke", "gracias", "shukran", "cheers"], "You're welcome. Enjoy your stay."],
+    [["hello", "hey", "hi", "hiya", "good morning", "good afternoon", "good evening", "ciao", "bonjour", "hallo", "hola", "salam"], "Hello. Tap a topic below, or ask me about the house, for example breakfast times or what is on today."],
+  ];
+  const has = (raw, keys) => keys.some((k) => raw.includes(" " + norm(k).trim() + " "));
+  const opt = (t) => ({ id: t.id, label: t.label });
+
+  function byId(id, ctx) {
+    const t = BY[id]; if (!t) return null;
+    return Object.assign({ type: "answer", id, label: t.label }, t.answer([], ctx || {}));
+  }
+
+  // typed question -> a sure answer (with "Not this?" options), a short choice, or "I don't know"
+  function ask(q, ctx) {
+    ctx = ctx || {};
     const raw = norm(q);
     if (!VOCAB) { VOCAB = new Set(); T.forEach((t) => t.keys.forEach(([k]) => prep(k).forEach((x) => VOCAB.add(x)))); H.map.key.forEach((k) => prep(k).forEach((x) => VOCAB.add(x))); }
     const all = fix(prep(q)), words = all.filter((w) => !STOP.has(w));
+    const none = { type: "none", text: H.bot.fallback, wa: true };
+    if (has(raw, IDENTITY)) return { type: "answer", id: "bot", text: "I'm an automated assistant, not a person. I answer from the House Book. For a person, tap Message the front office: someone replies on WhatsApp, at any hour.", wa: true };
     // things the House Book doesn't cover: say so rather than answer something nearby
-    if (/ (dress code|what to wear|dog|dogs|pet|pets|smoking|smoke|lost|stolen|lost and found|hairdresser|barber) /.test(raw)) return { matched: null, text: H.bot.fallback, wa: true };
-    if (words.includes("change")) return Object.assign({ matched: "change" }, T.find((t) => t.keys[0][0] === "change").answer(words));
-    for (const [keys, fn] of SMALL.slice(0, 1)) if (keys.some((k) => raw.includes(" " + norm(k).trim() + " "))) return Object.assign({ matched: "bot" }, fn());
+    if (/ (dress code|what to wear|dog|dogs|pet|pets|smoking|smoke|lost|stolen|left my|forgot my|forgotten|hairdresser|barber|kids menu|children s menu|child menu) /.test(raw)) return none;
+    // a message that is only a greeting or a thank you
+    for (const [keys, text] of SMALL) { let rest = raw; keys.forEach((k) => { rest = rest.split(" " + norm(k).trim() + " ").join(" "); }); if (rest !== raw && !prep(rest).filter(Boolean).some((x) => !STOP.has(x) && !["there", "again", "much", "very", "so", "all", "everyone"].includes(x))) return { type: "answer", id: "small", text }; }
+    if (words.includes("diet")) return Object.assign({ type: "answer", id: "diet" }, BY.diet.answer(words, ctx));
+    if (words.includes("change")) return Object.assign({ type: "answer", id: "change" }, BY.change.answer(words, ctx));
     // "where is the pottery" -> its number on the farm map
     if (/ (where|find|directions|located|location) /.test(raw)) {
       const i = H.map.key.findIndex((k) => nameKeys(k, 1).some(([x]) => words.includes(x)));
-      if (i >= 0) return { matched: "map", text: H.map.key[i] + " is number " + (i + 1) + " on the farm map.", actions: [{ label: "Open the map", href: "#/house/map" }] };
+      if (i >= 0) return { type: "answer", id: "map", text: H.map.key[i] + " is number " + (i + 1) + " on the farm map.", actions: [{ label: "Open the map", href: "#/house/map" }] };
     }
-    let best = null;
-    T.forEach((t, i) => { const s = score(all, words, t.keys); if (!best || s > best.s) best = { s, i }; });
-    if (best && best.s >= 1) {
-      const a = T[best.i].answer(words);
-      return Object.assign({ matched: best.i, score: best.s }, a);
+    const ranked = T.map((t) => ({ t, s: score(all, words, t.keys) })).filter((r) => r.s > 0).sort((a, b) => b.s - a.s);
+    const top = ranked[0], next = ranked[1];
+    if (!top || top.s < 2) {
+      for (const [keys, text] of SMALL) if (has(raw, keys)) return { type: "answer", id: "small", text };
+      // a weak hint is still worth offering, but never as an answer
+      const weak = ranked.filter((r) => r.s >= 1).slice(0, 3);
+      return weak.length ? { type: "choices", text: "I'm not sure what you mean. Is it one of these?", options: weak.map((r) => opt(r.t)), wa: true } : none;
     }
-    for (const [keys, fn] of SMALL.slice(1)) if (keys.some((k) => raw.includes(" " + norm(k).trim() + " "))) return Object.assign({ matched: "small" }, fn());
-    return { matched: null, text: H.bot.fallback, wa: true };
+    // close call between two different things: ask, don't guess
+    if (next && next.s >= 1.5 && top.s - next.s < 1) {
+      return { type: "choices", text: "Which of these do you mean?", options: ranked.filter((r) => r.s >= 1).slice(0, 3).map((r) => opt(r.t)), wa: true, score: top.s };
+    }
+    const a = Object.assign({ type: "answer", id: top.t.id, label: top.t.label, score: top.s }, top.t.answer(words, ctx));
+    a.alts = ranked.slice(1).filter((r) => r.s >= 1.5).slice(0, 2).map((r) => opt(r.t));
+    return a;
   }
 
-  window.BOT = { answer, _prep: prep };
+  // kept for older callers and tests: plain answer text, matched = null when it doesn't know
+  function answer(q, ctx) { const r = ask(q, ctx); return Object.assign({ matched: r.type === "none" ? null : r.type === "choices" ? "choices" : r.id }, r); }
+
+  window.BOT = { ask, byId, answer, topics: TOPICS.map((t) => ({ id: t.id, label: t.label, options: t.items.filter((i) => BY[i]).map((i) => opt(BY[i])) })), _prep: prep };
 })();

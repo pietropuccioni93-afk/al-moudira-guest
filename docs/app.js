@@ -391,7 +391,9 @@
       : a.tel ? `<a class="pill" href="tel:${esc(a.tel)}">${esc(a.label)}</a>`
       : `<button class="pill" data-act="${esc(a.act)}" ${a.id ? `data-id="${esc(a.id)}"` : ""} ${a.kind ? `data-kind="${esc(a.kind)}"` : ""}>${esc(a.label)}</button>`).join("");
     const wa = m.q ? `<button class="pill${m.wa ? " go" : ""}" data-act="bot-wa" data-i="${i}">Message the front office</button>` : "";
-    return `<div class="bubble them bot"><span class="who">${esc(HB.bot.who)}</span>${esc(m.text)}${acts || wa ? `<div class="bactions">${acts}${wa}</div>` : ""}</div>`;
+    const opts = m.options ? `<div class="qlist${m.grid ? " grid" : ""}">${m.options.map((o) => `<button class="qbtn" data-act="${m.grid ? "bot-topic" : "bot-q"}" data-id="${esc(o.id)}">${esc(o.label)}</button>`).join("")}</div>` : "";
+    const alts = m.alts && m.alts.length ? `<div class="notthis"><span>Not this?</span>${m.alts.map((o) => `<button class="lk" data-act="bot-q" data-id="${esc(o.id)}">${esc(o.label)}</button>`).join("")}</div>` : "";
+    return `<div class="bubble them bot"><span class="who">${esc(HB.bot.who)}</span>${esc(m.text)}${opts}${acts || wa ? `<div class="bactions">${acts}${wa}</div>` : ""}${alts}</div>`;
   }
   V.ask = () => {
     const wa = API.mode === "whatsapp";
@@ -399,15 +401,14 @@
       <h1 style="margin-top:10px">${esc(C.tabs.ask)}</h1>
       <p class="small" style="margin-top:8px">${esc(HB.bot.note)}</p>
       <div class="thread" aria-live="polite">
-        ${botBubble({ text: HB.bot.intro.replace("{name}", S.session.guest.first) }, -1)}
+        ${botBubble({ text: HB.bot.intro.replace("{name}", S.session.guest.first), options: BOT.topics, grid: true }, -1)}
         ${S.bot.map((m, i) => m.from === "guest" ? `<div class="bubble me">${esc(m.text)}</div>` : botBubble(m, i)).join("")}
         ${S.botTyping ? `<div class="bubble them bot typing" aria-label="The assistant is answering"><span></span><span></span><span></span></div>` : ""}
       </div>
       <div class="composer">
-        <div class="chips" style="margin-top:0">${HB.bot.chips.map((c) => `<button class="chip" data-act="bot-chip" data-text="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+        <div class="chips" style="margin-top:0"><button class="chip front" data-act="front">Front office</button>${BOT.topics.map((t) => `<button class="chip" data-act="bot-topic" data-id="${esc(t.id)}">${esc(t.label)}</button>`).join("")}</div>
         <form data-form="ask"><label class="sr" for="msg">Ask the assistant</label><input id="msg" class="input" data-bind="askDraft" value="${esc(S.askDraft)}" placeholder="Ask a question" autocomplete="off" enterkeyhint="send">
         <button class="send-text">Send</button></form>
-        <button class="front-link" data-act="front">Message the front office instead</button>
       </div></div>`;
     const msgs = S.messages;
     return `<div class="screen" style="padding-bottom:calc(var(--tabbar) + var(--safe-b) + 8px)">
@@ -714,7 +715,8 @@
           total: (items.some((i) => i.label) ? "from " : "") + money(total) + ", to your room" });
         break;
       }
-      case "bot-chip": askBot(el.dataset.text); break;
+      case "bot-topic": { const t = BOT.topics.find((x) => x.id === el.dataset.id); if (t) botSay(t.label, () => ({ text: "Here is what I can tell you about " + t.label.toLowerCase() + ":", options: t.options })); break; }
+      case "bot-q": { const id = el.dataset.id; botSay(el.textContent.trim(), () => Object.assign({ q: el.textContent.trim() }, BOT.byId(id, botCtx()))); break; }
       case "bot-wa": { const m = S.bot[+el.dataset.i]; if (m && m.q) openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text: m.q } }); break; }
       case "front": { const text = (S.askDraft || "").trim(); if (text) { S.askDraft = ""; openSheet({ type: "handoff", title: "Your message", req: { kind: "message", text } }); } else openSheet(Object.assign({ type: "simple", kind: "front", note: "" }, SIMPLE.front())); break; }
       case "chip": S.askDraft = el.dataset.text + ": "; render(true); const m = document.getElementById("msg"); if (m) { m.focus(); m.setSelectionRange(m.value.length, m.value.length); } break;
@@ -758,17 +760,29 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.sheet) closeSheet(); });
 
   function scrollEnd() { window.scrollTo({ top: document.body.scrollHeight }); }
+  // show the newest reply from its first line, under the title bar
+  function scrollToReply() {
+    const bs = document.querySelectorAll(".bubble.bot"); const el = bs[bs.length - 1];
+    if (!el || bs.length < 2) { window.scrollTo({ top: 0 }); return; }
+    const bar = document.querySelector(".topbar"); const off = (bar ? bar.getBoundingClientRect().height : 56) + 12;
+    window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - off) });
+  }
 
   // the assistant answers on the phone (bot.js); a short pause so it reads like a reply
-  function askBot(text) {
-    text = String(text || "").trim().slice(0, 500); if (!text) return;
-    S.bot.push({ from: "guest", text }); S.botTyping = true; render(true); scrollEnd();
+  // the assistant answers on the phone (bot.js); a short pause so it reads like a reply
+  function botCtx() { const sun = sunTimes(U.houseDate(0)); return { temp: S.temp, rise: fmtClock(sun.rise), set: fmtClock(sun.set) }; }
+  function botSay(guestText, reply) {
+    S.bot.push({ from: "guest", text: guestText }); S.botTyping = true; render(true); scrollEnd();
     setTimeout(() => {
-      const a = window.BOT.answer(text);
-      S.bot.push(Object.assign({ from: "bot", q: text }, a)); S.botTyping = false;
-      if (location.hash.startsWith("#/ask")) { render(true); scrollEnd(); }
+      S.bot.push(Object.assign({ from: "bot" }, reply())); S.botTyping = false;
+      if (location.hash.startsWith("#/ask")) { render(true); scrollToReply(); }
     }, 450);
   }
+  function askBot(text) {
+    text = String(text || "").trim().slice(0, 500); if (!text) return;
+    botSay(text, () => Object.assign({ q: text }, BOT.ask(text, botCtx())));
+  }
+
 
   // ---- router
   function route() {
@@ -798,7 +812,7 @@
     if (bind) { const n = app.querySelector(`[data-bind="${bind}"]`); if (n) { n.focus({ preventScroll: true }); try { n.setSelectionRange(pos, pos); } catch (e) { } } }
     const key = r.name + "/" + r.arg + "/" + r.sub;
     if (!keepScroll && key !== lastRoute) window.scrollTo(0, 0);
-    if (r.name === "ask" && key !== lastRoute) setTimeout(scrollEnd, 0);
+    if (r.name === "ask" && key !== lastRoute) setTimeout(API.mode === "whatsapp" ? scrollToReply : scrollEnd, 0);
     // splash -> today
     if (lastRoute.startsWith("splash") && r.name !== "splash") {
       app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
