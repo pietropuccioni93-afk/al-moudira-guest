@@ -389,8 +389,8 @@
   function botBubble(m, i) {
     const acts = (m.actions || []).map((a) => a.href ? `<a class="pill" href="${esc(a.href)}">${esc(a.label)}</a>`
       : a.tel ? `<a class="pill" href="tel:${esc(a.tel)}">${esc(a.label)}</a>`
-      : `<button class="pill" data-act="${esc(a.act)}" ${a.id ? `data-id="${esc(a.id)}"` : ""} ${a.kind ? `data-kind="${esc(a.kind)}"` : ""}>${esc(a.label)}</button>`).join("");
-    const wa = m.q ? `<button class="pill${m.wa ? " go" : ""}" data-act="bot-wa" data-i="${i}">Message the front office</button>` : "";
+      : `<button class="pill${m.booking ? " go" : ""}" data-act="${esc(a.act)}" ${a.id ? `data-id="${esc(a.id)}"` : ""} ${a.kind ? `data-kind="${esc(a.kind)}"` : ""} ${a.note ? `data-note="${esc(a.note)}"` : ""} ${a.time ? `data-time="${esc(a.time)}"` : ""} ${a.guests ? `data-guests="${a.guests}"` : ""} ${a.day ? `data-day="${esc(a.day)}"` : ""}>${esc(a.label)}</button>`).join("");
+    const wa = m.q && !m.booking ? `<button class="pill${m.wa ? " go" : ""}" data-act="bot-wa" data-i="${i}">Message the front office</button>` : "";
     const opts = m.options ? `<div class="qlist${m.grid ? " grid" : ""}">${m.options.map((o) => `<button class="qbtn" data-act="${m.grid ? "bot-topic" : "bot-q"}" data-id="${esc(o.id)}">${esc(o.label)}</button>`).join("")}</div>` : "";
     const alts = m.alts && m.alts.length ? `<div class="notthis"><span>Not this?</span>${m.alts.map((o) => `<button class="lk" data-act="bot-q" data-id="${esc(o.id)}">${esc(o.label)}</button>`).join("")}</div>` : "";
     return `<div class="bubble them bot"><span class="who">${esc(HB.bot.who)}</span>${esc(m.text)}${opts}${acts || wa ? `<div class="bactions">${acts}${wa}</div>` : ""}${alts}</div>`;
@@ -641,7 +641,9 @@
       case "reserve": {
         const e = exp(id); if (!e) return;
         const days = stayDays(e);
-        openSheet({ type: "exp", id, title: e.name, date: days[0], time: null, guests: Math.min(S.session.guests || 2, e.guestsLabel ? 1 : 10), note: "" });
+        // from the assistant: the guest's own words, time, guests and day carry into the form
+        const d = el.dataset, day = d.day === "tomorrow" && days.includes(U.houseDate(1)) ? U.houseDate(1) : days[0];
+        openSheet({ type: "exp", id, title: e.name, date: day, time: d.time && e.times && e.times.includes(d.time) ? d.time : null, guests: d.guests ? +d.guests : Math.min(S.session.guests || 2, e.guestsLabel ? 1 : 10), note: d.note || "" });
         break;
       }
       case "s-date": st.date = el.dataset.v; drawSheet(); break;
@@ -780,7 +782,8 @@
   }
   function askBot(text) {
     text = String(text || "").trim().slice(0, 500); if (!text) return;
-    botSay(text, () => Object.assign({ q: text }, BOT.ask(text, botCtx())));
+    const lastId = (S.bot.slice().reverse().find((m) => m.from === "bot" && m.id) || {}).id;
+    botSay(text, () => Object.assign({ q: text }, BOT.ask(text, Object.assign(botCtx(), { lastId }))));
   }
 
 

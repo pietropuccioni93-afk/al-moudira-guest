@@ -35,7 +35,7 @@
     shopping: "souq", market: "souq", souk: "souq", bazaar: "souq", souvenir: "souq", souvenirs: "souq",
     bday: "birthday", anniversary: "celebration", birthday: "celebration", honeymoon: "celebration",
     bike: "cycling", bicycle: "cycling", horse: "horses", riding: "horses", "horse ride": "horses", "horseback": "horses",
-    tonight: "evening", night: "evening", "should we do": "things to do", "should i do": "things to do", "can we do": "things to do", "can i do": "things to do",
+    tonight: "evening", night: "evening", "should we do": "things to do", "should i do": "things to do",
     safe: "safety", dangerous: "safety", danger: "safety",
     cost: "price", costs: "price", much: "price", expensive: "price", prices: "price",
   };
@@ -60,7 +60,7 @@
     return d[a.length][b.length];
   }
   // typo fix: an unknown word becomes the closest word we know (never these everyday words)
-  const COMMON = new Set("wife husband partner friend friends son daughter baby mother father mum dad family people person guest guests night nights week weeks time hour hours minute minutes tomorrow yesterday morning afternoon tonight dog dogs cat pet pets smoke smoking weather rain wind sun cash card cards money euro euros dollar dollars pound visa amex currency exchange atm tip tips mastercard bag bags luggage please thanks love good great nice open opens close closes closed late early now soon later fine okay sure ready wait name names photo photos picture sell buy gift gifts life wine beer drink drinks bar coffee tea milk ice sugar salt bread rice fish meat chicken lamb beef fruit cake".split(" "));
+  const COMMON = new Set("wife husband partner friend friends son daughter baby mother father mum dad family people person guest guests night nights week weeks time hour hours minute minutes tomorrow yesterday morning afternoon tonight dog dogs cat pet pets smoke smoking weather rain wind sun cash card cards money euro euros dollar dollars pound visa amex currency exchange atm tip tips table tables mastercard bag bags luggage please thanks love good great nice open opens close closes closed late early now soon later fine okay sure ready wait name names photo photos picture sell buy gift gifts life wine beer drink drinks bar coffee tea milk ice sugar salt bread rice fish meat chicken lamb beef fruit cake".split(" "));
   let VOCAB = null;
   function fix(words) {
     return words.map((w) => {
@@ -111,7 +111,7 @@
     const incl = ["included", "include", "free", "complimentary", "extra", "price", "pay"].some((x) => w.includes(x));
     return { text: "Breakfast is " + practical["Breakfast"] + ", under the trees at " + exps["dining-room"].name + "." + (incl ? " Whether it is included depends on your booking: the front office can confirm." : ""), wa: incl, actions: [{ label: "Reserve a table", act: "reserve", id: "dining-room" }] };
   });
-  add("restaurants", "Our restaurants", [["dinner", 2], ["eat", 2], ["lunch", 2], ["hungry", 1]], (w) => {
+  add("restaurants", "Our restaurants", [["dinner", 2], ["eat", 2], ["lunch", 2], ["hungry", 1], ["table", 2]], (w) => {
     const din = H.experiences.filter((e) => e.cat === "dining");
     const lunchOnly = w.includes("lunch") && !w.includes("dinner");
     const pick = lunchOnly ? din.filter((e) => /lunch/i.test(e.label + e.meta)) : din;
@@ -126,7 +126,7 @@
   add("spa", "The spa", [["spa", 3], ["massage", 2.5]], () => ({ text: "The spa is open " + practical["The spa"] + ".\n\n" + list(H.experiences.filter((e) => e.cat === "wellness" && e.action === "reserve").map((e) => e.name + ": " + e.meta + ", " + e.label)) + "\n\n" + H.taxNote, actions: [{ label: "See the spa", href: "#/discover/wellness" }] }));
   add("pool", "The pool", [["pool", 3]], () => ({ text: "The pool is open " + practical["The pool"] + ". " + exps["pool-pavilion"].name + " serves lunch by the water, " + exps["pool-pavilion"].meta + ".", actions: [{ label: "Reserve lunch", act: "reserve", id: "pool-pavilion" }] }));
   add("gym", "The gym", [["gym", 3]], () => ({ text: "The gym is open " + practical["The gym"] + "." }));
-  add("today", "What's on today", [["what to do", 3], ["things to do", 3], ["activities", 2.5], ["activity", 2.5], ["programme", 3], ["program", 3], ["schedule", 2], ["today", 1], ["recommend", 2.5], ["suggest", 2.5], ["bored", 2]], () => {
+  add("today", "What's on today", [["what can we do", 3], ["what can i do", 3], ["what to do", 3], ["things to do", 3], ["activities", 2.5], ["activity", 2.5], ["programme", 3], ["program", 3], ["schedule", 2], ["today", 1], ["recommend", 2.5], ["suggest", 2.5], ["bored", 2]], () => {
     const wd = weekdayAtHouse();
     const today = H.daily.filter((d) => !d.weekdays || d.weekdays.includes(wd));
     return { text: "Today at the house:\n" + list(today.map((d) => d.time + "  " + d.name + " (" + d.sub.toLowerCase() + ")")) + "\n\nBefore sunset, " + exps["felucca"].name.toLowerCase() + " leaves at " + exps["felucca"].times[0] + ". For more, see Discover.", actions: [{ label: "Discover", href: "#/discover/all" }] };
@@ -195,6 +195,33 @@
     return Object.assign({ type: "answer", id, label: t.label }, t.answer([], ctx || {}));
   }
 
+  // ---- wanting to book: "I'd like to go riding at nine", "table for two at 8 tomorrow"
+  const BOOK = / (book|booking|reserve|reservation|would like|we d like|i d like|id like|want to|wanna|like to|can we|could we|can i|could i|arrange|sign (me|us) up|tomorrow|tonight|this evening|this afternoon|at \d|\d ?(am|pm)|at (one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)) /;
+  const NUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+  function wantedTime(raw, times) {
+    // "at 8", "at nine", "at 19:30", "5pm", "9 am": a number alone ("for two") is not a time
+    const m = raw.match(/ at (\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)(?:[: ](\d{2}))? ?(am|pm|o clock)? /) || raw.match(/ (\d{1,2})(?:[: ](\d{2}))? ?(am|pm) /) || raw.match(/ (\d{1,2})[: ](\d{2}) /);
+    if (!m || !times) return null;
+    let h = NUM[m[1]] || +m[1]; const min = m[2] || "00";
+    if (h > 23) return null;
+    const ap = m[3];
+    const cands = ap === "pm" && h < 12 ? [h + 12] : ap === "am" ? [h % 12] : h <= 12 ? [h, h + 12] : [h];
+    return cands.map((x) => String(x).padStart(2, "0") + ":" + min).find((t) => times.includes(t)) || null;
+  }
+  function wantedGuests(raw) {
+    const m = raw.match(/ (?:for|of|we are|there are|party of) (\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)(?: of us| people| persons| guests| adults)? /);
+    const n = m ? NUM[m[1]] || +m[1] : 0;
+    return n >= 1 && n <= 20 ? n : 0;
+  }
+  function bookAnswer(e, q, raw) {
+    const time = wantedTime(raw, e.times), guests = wantedGuests(raw), day = / tomorrow /.test(raw) ? "tomorrow" : "";
+    const v = verb(e);
+    const nm = /^(The|A) /.test(e.name) ? e.name.replace(/^(The|A) /, (x) => x.toLowerCase()) : e.name.split(" ").slice(1).every((x) => x === x.toLowerCase()) ? e.name[0].toLowerCase() + e.name.slice(1) : e.name;
+    let text = "Happy to arrange " + nm + ". Tap " + v + (e.action === "ask" ? " and your request, with what you wrote, goes to the front office" : " to choose the day" + (e.times ? " and time" : "") + ", and your request goes to the front office") + ". They will confirm.";
+    if (e.times && / (at \d|\d ?(am|pm)|at (one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)) /.test(raw) && !time) text += " The times offered are " + e.times.join(", ") + ".";
+    return { type: "answer", id: "x:" + e.id, label: e.name, booking: true, text, actions: [{ label: v, act: "reserve", id: e.id, note: q, time, guests, day }] };
+  }
+
   // typed question -> a sure answer (with "Not this?" options), a short choice, or "I don't know"
   function ask(q, ctx) {
     ctx = ctx || {};
@@ -216,6 +243,15 @@
     }
     const ranked = T.map((t) => ({ t, s: score(all, words, t.keys) })).filter((r) => r.s > 0).sort((a, b) => b.s - a.s);
     const top = ranked[0], next = ranked[1];
+    // a guest who wants to book gets the booking, not the description again
+    if (BOOK.test(raw)) {
+      const sure = top && top.s >= 2 && top.t.id.startsWith("x:") && !(next && next.s >= 1.5 && top.s - next.s < 1);
+      const last = ctx.lastId && ctx.lastId.startsWith("x:") ? ctx.lastId : null;
+      // follow-up on what we were just talking about ("can we do 9am?")
+      const follow = last && !sure;
+      const id = follow ? last : sure ? top.t.id : null;
+      if (id) return bookAnswer(exps[id.slice(2)], q, raw);
+    }
     if (!top || top.s < 2) {
       for (const [keys, text] of SMALL) if (has(raw, keys)) return { type: "answer", id: "small", text };
       // a weak hint is still worth offering, but never as an answer
